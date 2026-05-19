@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>evisitor sanity — quietly generate an eVisitor XML</title>
+    <meta name="description" content="A calm, modern tool that turns guest details into a valid eVisitor (Croatia) XML file you can upload by hand. Nothing leaves your browser." />
+    <meta name="theme-color" content="#f6f1e7" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#15140f" media="(prefers-color-scheme: dark)" />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <link rel="stylesheet" href="./assets/styles.css" />
+  </head>
+  <body>
+    <!-- ────────── Header / hero ────────── -->
+    <header class="px-5 md:px-10 lg:px-16 pt-10 md:pt-16">
+      <div class="max-w-6xl mx-auto">
+        <div class="flex items-center justify-between reveal reveal-1">
+          <div class="flex items-center gap-3">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M2 18c3-2 6-2 10 0s7 2 10 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+              <path d="M2 13c3-2 6-2 10 0s7 2 10 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.55" />
+              <path d="M2 8c3-2 6-2 10 0s7 2 10 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.3" />
+            </svg>
+            <span class="eyebrow">evisitor · sanity</span>
+          </div>
+          <nav class="flex items-center gap-2">
+            <a class="btn btn-ghost" href="https://www.evisitor.hr/eVisitorWiki/Javno.Web-API.ashx" target="_blank" rel="noopener">
+              eVisitor wiki <span aria-hidden="true">↗</span>
+            </a>
+            <a class="btn btn-ghost" href="https://github.com/vpetersson/evisitor-sanity" target="_blank" rel="noopener">
+              GitHub <span aria-hidden="true">↗</span>
+            </a>
+          </nav>
+        </div>
+
+        <div class="mt-10 md:mt-16 grid md:grid-cols-12 gap-10">
+          <div class="md:col-span-8 reveal reveal-2">
+            <h1 class="display-serif text-[clamp(2.6rem,6vw,4.6rem)] leading-[1.02] tracking-[-0.02em] font-light">
+              File a guest with <span class="mark-italic">sanity</span>,<br />
+              not with the official site.
+            </h1>
+            <div class="title-rule"></div>
+            <p class="mt-6 max-w-2xl text-[17px] text-[color:var(--color-ink-2)] leading-[1.55]">
+              Croatian hosts must report every overnight guest to eVisitor. The official UI is the kind of thing
+              you only open when you have to. This generates a tidy
+              <code class="font-mono text-[0.92em] text-[color:var(--color-ink)]">TouristCheckIns.xml</code>
+              you can upload once via <span class="font-medium">Turisti → Prijava putem datoteke</span>.
+              No login, no analytics, nothing leaves your browser.
+            </p>
+          </div>
+
+          <aside class="md:col-span-4 reveal reveal-3">
+            <div class="card p-5">
+              <span class="eyebrow">How it works</span>
+              <ol class="mt-4 space-y-3 text-[14.5px] text-[color:var(--color-ink-2)]">
+                <li class="flex gap-3">
+                  <span class="numeral text-2xl text-[color:var(--color-adriatic)] leading-none">1</span>
+                  <span>Save your Facility code and defaults — kept on this device.</span>
+                </li>
+                <li class="flex gap-3">
+                  <span class="numeral text-2xl text-[color:var(--color-adriatic)] leading-none">2</span>
+                  <span>Add one entry per guest. Duplicate a row for families.</span>
+                </li>
+                <li class="flex gap-3">
+                  <span class="numeral text-2xl text-[color:var(--color-adriatic)] leading-none">3</span>
+                  <span>Download the file, log in, upload, done.</span>
+                </li>
+              </ol>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </header>
+
+    <main class="px-5 md:px-10 lg:px-16 pt-14 md:pt-20 pb-32">
+      <div class="max-w-6xl mx-auto grid lg:grid-cols-12 gap-10">
+        <!-- ────────── Left column: settings + tourists ────────── -->
+        <section class="lg:col-span-7 space-y-10">
+          <!-- Settings -->
+          <details id="settings" class="card p-6 reveal reveal-3" open>
+            <summary class="flex items-center justify-between">
+              <div>
+                <span class="eyebrow">01 · Property defaults</span>
+                <h2 class="display-serif text-2xl font-light mt-1">Settings, saved on this device</h2>
+              </div>
+              <span class="chev text-[color:var(--color-ink-3)]" aria-hidden="true">›</span>
+            </summary>
+            <p class="mt-3 text-[14px] text-[color:var(--color-ink-3)] max-w-xl">
+              Stored in <span class="kbd">localStorage</span>. Used to autofill every new guest row. Never sent anywhere.
+            </p>
+
+            <div id="settings-fields" class="mt-6 grid sm:grid-cols-2 gap-x-8 gap-y-5"></div>
+          </details>
+
+          <!-- Tourists -->
+          <div class="reveal reveal-4">
+            <div class="flex items-end justify-between mb-4">
+              <div>
+                <span class="eyebrow">02 · Guests</span>
+                <h2 class="display-serif text-2xl font-light mt-1">One entry per overnight guest</h2>
+              </div>
+              <span id="tourist-summary" class="chip"></span>
+            </div>
+
+            <div id="tourist-list" class="space-y-8"></div>
+
+            <div class="mt-6 flex flex-wrap gap-3">
+              <button id="btn-add" class="btn">＋ Add guest</button>
+              <button id="btn-duplicate" class="btn btn-ghost">Duplicate last</button>
+              <button id="btn-sample" class="btn btn-ghost">Use sample data</button>
+              <button id="btn-reset" class="btn btn-danger ml-auto">Clear all</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ────────── Right column: XML preview ────────── -->
+        <aside class="lg:col-span-5 lg:sticky lg:top-8 self-start reveal reveal-4">
+          <div class="card p-6">
+            <div class="flex items-end justify-between mb-4">
+              <div>
+                <span class="eyebrow">03 · Preview</span>
+                <h2 class="display-serif text-2xl font-light mt-1">TouristCheckIns.xml</h2>
+              </div>
+              <button id="btn-copy" class="btn btn-ghost text-sm">Copy</button>
+            </div>
+            <pre id="xml-preview" class="xml-pre" aria-live="polite"></pre>
+            <p class="mt-3 text-[12.5px] text-[color:var(--color-ink-3)] leading-relaxed">
+              Empty optional fields are omitted. Dates are emitted as <code class="font-mono">YYYYMMDD</code>, times as
+              <code class="font-mono">hh:mm</code>. Country fields use ISO 3166-1 alpha-3 codes.
+            </p>
+          </div>
+        </aside>
+      </div>
+    </main>
+
+    <!-- ────────── Sticky bottom CTA ────────── -->
+    <div class="sticky-footer px-5 md:px-10 lg:px-16 py-4">
+      <div class="max-w-6xl mx-auto flex items-center justify-between gap-4">
+        <div class="text-[13px] text-[color:var(--color-ink-3)] hidden sm:block">
+          <span id="download-status">Ready when you are.</span>
+          <span class="ml-2">Press <span class="kbd">⌘ / Ctrl</span> + <span class="kbd">Enter</span> to download.</span>
+        </div>
+        <button id="btn-download" class="btn btn-primary text-[15px] px-5 py-3">
+          Download XML
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M12 4v12m0 0l-4-4m4 4l4-4M5 20h14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- ────────── Footer ────────── -->
+    <footer class="px-5 md:px-10 lg:px-16 py-10 mt-10 border-t border-[color:var(--color-rule)]">
+      <div class="max-w-6xl mx-auto flex flex-col md:flex-row md:items-end md:justify-between gap-5 text-[13px] text-[color:var(--color-ink-3)]">
+        <div class="max-w-xl">
+          <p>
+            Unofficial. Not affiliated with eVisitor or the Croatian Tourist Board. The XML schema is reverse-built
+            from the public Web-API documentation; if a field name is rejected on upload, please
+            <a class="underline decoration-[color:var(--color-rule)] underline-offset-4 hover:text-[color:var(--color-ink)]" href="https://github.com/vpetersson/evisitor-sanity/issues" target="_blank" rel="noopener">open an issue</a>.
+          </p>
+        </div>
+        <p class="text-right">
+          Made with quiet rage<br />by <a class="underline decoration-[color:var(--color-rule)] underline-offset-4 hover:text-[color:var(--color-ink)]" href="https://github.com/vpetersson" target="_blank" rel="noopener">@vpetersson</a>
+        </p>
+      </div>
+    </footer>
+
+    <!-- Country datalist (rendered once) -->
+    <datalist id="country-codes"></datalist>
+
+    <script type="module" src="./assets/main.js"></script>
+  </body>
+</html>

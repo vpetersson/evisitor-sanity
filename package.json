@@ -1,0 +1,29 @@
+{
+  "name": "evisitor-sanity",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A modern, calm form for generating eVisitor (Croatia) tourist check-in XML you can upload by hand.",
+  "type": "module",
+  "scripts": {
+    "dev": "bun run scripts/dev.ts",
+    "build": "bun run clean && bun run build:html && bun run build:public && bun run build:css && bun run build:js",
+    "build:html": "bun run scripts/copy-html.ts",
+    "build:public": "bun run scripts/copy-public.ts",
+    "build:css": "bunx @tailwindcss/cli -i ./src/styles.css -o ./dist/assets/styles.css --minify",
+    "build:js": "bun build ./src/main.ts --outdir ./dist/assets --entry-naming main.js --minify --target browser",
+    "typecheck": "bunx tsc --noEmit",
+    "test": "bun test",
+    "clean": "rm -rf dist"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.1.7",
+    "@types/bun": "^1.1.13",
+    "tailwindcss": "^4.1.7",
+    "typescript": "^5.6.3"
+  },
+  "dependencies": {
+    "@fontsource-variable/fraunces": "^5.1.0",
+    "@fontsource-variable/geist": "^5.1.0",
+    "@fontsource-variable/geist-mono": "^5.1.0"
+  }
+}
