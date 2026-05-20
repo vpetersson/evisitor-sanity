@@ -4,30 +4,20 @@ import {
   saveSettings,
   sampleTourist,
 } from "./state.ts";
-import {
-  renderCountryDatalist,
-  renderSettings,
-  renderTouristList,
-  renderXmlPreview,
-} from "./render.ts";
+import { renderAll } from "./render.ts";
 import { serialiseImportTourists } from "./xml.ts";
 import { validateTourist } from "./validation.ts";
 import type { AppState, Settings, Tourist } from "./types.ts";
 
 const state: AppState = createInitialState();
 
-function render(): void {
-  renderSettings(state, handlers);
-  renderTouristList(state, handlers);
-  renderXmlPreview(serialiseImportTourists(state.tourists));
-}
-
 const handlers = {
   onSettingsChange(patch: Partial<Settings>) {
     state.settings = { ...state.settings, ...patch };
     saveSettings(state.settings);
 
-    // Sync defaults onto rows that haven't been hand-edited.
+    // Cascade newly entered defaults onto any guest rows that haven't been
+    // hand-edited away from the previous default.
     if (patch.facility !== undefined) {
       for (const t of state.tourists) if (!t.facility) t.facility = patch.facility;
     }
@@ -54,7 +44,11 @@ const handlers = {
   },
 };
 
-function downloadXml(): void {
+function render(): void {
+  renderAll(state, handlers);
+}
+
+function downloadFile(): void {
   for (const t of state.tourists) {
     if (!validateTourist(t).ok) return;
   }
@@ -68,22 +62,13 @@ function downloadXml(): void {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+  flashStatus("File saved. Upload it on eVisitor under Turisti → Prijava putem datoteke.");
 }
 
 function filenameForToday(): string {
   const d = new Date();
   const pad = (n: number) => String(n).padStart(2, "0");
   return `TouristCheckIns-${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}.xml`;
-}
-
-async function copyXml(): Promise<void> {
-  const xml = serialiseImportTourists(state.tourists);
-  try {
-    await navigator.clipboard.writeText(xml);
-    flashStatus("Copied XML to clipboard.");
-  } catch {
-    flashStatus("Couldn't access clipboard.");
-  }
 }
 
 function flashStatus(message: string): void {
@@ -93,13 +78,14 @@ function flashStatus(message: string): void {
   el.textContent = message;
   window.setTimeout(() => {
     if (el.textContent === message) el.textContent = previous ?? "";
-  }, 1800);
+  }, 3000);
 }
 
 function wireGlobalActions(): void {
   document.querySelector("#btn-add")!.addEventListener("click", () => {
     state.tourists.push(blankTourist(state.settings));
     render();
+    scrollIntoLastGuest();
   });
 
   document.querySelector("#btn-duplicate")!.addEventListener("click", () => {
@@ -110,35 +96,67 @@ function wireGlobalActions(): void {
       state.tourists.push({ ...last, id: crypto.randomUUID() });
     }
     render();
+    scrollIntoLastGuest();
   });
 
   document.querySelector("#btn-sample")!.addEventListener("click", () => {
     state.tourists.push(sampleTourist(state.settings));
     render();
+    scrollIntoLastGuest();
   });
 
   document.querySelector("#btn-reset")!.addEventListener("click", () => {
-    if (!confirm("Clear all guests on this device? Settings are kept.")) return;
+    if (!confirm("Clear all guests on this device? Your property details are kept.")) return;
     state.tourists = [blankTourist(state.settings)];
     render();
   });
 
-  document.querySelector("#btn-download")!.addEventListener("click", downloadXml);
-  document.querySelector("#btn-copy")!.addEventListener("click", () => {
-    void copyXml();
-  });
+  document.querySelector("#btn-download")!.addEventListener("click", downloadFile);
+  document.querySelector("#btn-download-sticky")!.addEventListener("click", downloadFile);
+}
 
-  window.addEventListener("keydown", (e) => {
-    if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
-      e.preventDefault();
-      downloadXml();
-    }
+function wireSettingsDelegate(): void {
+  const root = document.querySelector<HTMLElement>("#settings-fields");
+  if (!root) return;
+  root.addEventListener("input", (e) => {
+    const t = e.target as HTMLInputElement;
+    if (!t.name) return;
+    handlers.onSettingsChange({ [t.name]: t.value } as Partial<Settings>);
   });
 }
 
+function wireHelpToggles(): void {
+  document.addEventListener("click", (e) => {
+    const target = e.target as HTMLElement | null;
+    if (!target) return;
+    const btn = target.closest<HTMLButtonElement>("[data-help-toggle]");
+    if (!btn) return;
+    e.preventDefault();
+    const helpId = btn.getAttribute("aria-controls");
+    if (!helpId) return;
+    const help = document.getElementById(helpId);
+    if (!help) return;
+    const willOpen = help.hasAttribute("hidden");
+    if (willOpen) {
+      help.removeAttribute("hidden");
+    } else {
+      help.setAttribute("hidden", "");
+    }
+    btn.setAttribute("aria-expanded", String(willOpen));
+  });
+}
+
+function scrollIntoLastGuest(): void {
+  const list = document.querySelector("#tourist-list");
+  if (!list) return;
+  const last = list.lastElementChild as HTMLElement | null;
+  last?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 function boot(): void {
-  renderCountryDatalist();
   wireGlobalActions();
+  wireSettingsDelegate();
+  wireHelpToggles();
   render();
 }
 

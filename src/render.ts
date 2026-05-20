@@ -1,6 +1,6 @@
-import { COUNTRIES } from "./countries.ts";
+import { COUNTRIES, countryName } from "./countries.ts";
 import { DOCUMENT_TYPES, PAYMENT_CATEGORIES } from "./document-types.ts";
-import { xmlEscape, toEvisitorDate, toEvisitorTime } from "./xml.ts";
+import { serialiseImportTourists, xmlEscape } from "./xml.ts";
 import { validateTourist } from "./validation.ts";
 import type {
   AppState,
@@ -21,122 +21,127 @@ const $ = <T extends Element>(sel: string, root: ParentNode = document): T => {
   return el;
 };
 
-export function renderCountryDatalist(): void {
-  const list = $("#country-codes") as HTMLDataListElement;
-  list.innerHTML = COUNTRIES.map(
-    (c) => `<option value="${c.code}" label="${c.name} (${c.code})">${c.name}</option>`,
-  ).join("");
-}
+const SORTED_COUNTRIES = [...COUNTRIES].sort((a, b) =>
+  a.name.localeCompare(b.name, "en"),
+);
 
-/* ── Settings ─────────────────────────────────────────────────────────────── */
+/* ─────────────────────────── Settings ─────────────────────────── */
 
-const SETTINGS_FIELDS: Array<{
+type SettingsFieldDef = {
   key: keyof Settings;
   label: string;
   type: "text" | "time";
   placeholder?: string;
-  hint?: string;
-}> = [
+  help: string;
+};
+
+const SETTINGS_FIELDS: SettingsFieldDef[] = [
   {
     key: "facility",
     label: "Facility code",
     type: "text",
     placeholder: "e.g. 12345-67",
-    hint: "Required. Assigned by eVisitor when you registered your facility.",
+    help: "Your property's facility code from eVisitor. You'll find it on your dashboard after you registered your accommodation.",
   },
   {
     key: "agencyOib",
-    label: "Tourist agency OIB",
+    label: "Travel agency OIB (optional)",
     type: "text",
-    placeholder: "Optional — 11 digits",
-    hint: "Only if guests arrive via a tourist agency.",
+    placeholder: "11-digit number, leave blank if none",
+    help: "If most of your guests arrive through a travel agency, enter the agency's 11-digit Croatian tax number (OIB). Leave blank otherwise.",
   },
   {
     key: "defaultArrivalOrg",
-    label: "Default Arrival Organisation (MUP code)",
+    label: "Default arrival code (MUP)",
     type: "text",
-    placeholder: "e.g. PUI",
-    hint: "The MUP code applied to every new guest.",
+    placeholder: "e.g. individual booking",
+    help: "The code from the Ministry of the Interior (MUP) describing how guests typically arrive — for example individual booking, organised group, business stay.",
   },
   {
     key: "defaultCheckInTime",
     label: "Default check-in time",
     type: "time",
+    help: "Used as the arrival time when you add a new guest. You can change it per guest if needed.",
   },
   {
     key: "defaultCheckOutTime",
     label: "Default check-out time",
     type: "time",
+    help: "Used as the leaving time when you add a new guest. You can change it per guest if needed.",
   },
 ];
 
-export function renderSettings(
-  state: AppState,
-  handlers: Handlers,
-): void {
+export function renderSettings(state: AppState): void {
   const root = $("#settings-fields");
-  root.innerHTML = "";
-  for (const f of SETTINGS_FIELDS) {
-    const wrap = document.createElement("label");
-    wrap.innerHTML = `
-      <span class="field-label">${f.label}</span>
-      <input class="field-input" type="${f.type}" name="${f.key}"
-             placeholder="${f.placeholder ?? ""}"
-             value="${escapeAttr(String(state.settings[f.key] ?? ""))}" />
-      ${f.hint ? `<span class="block mt-1 text-[12px] text-[color:var(--color-ink-3)]">${f.hint}</span>` : ""}
-    `;
-    const input = wrap.querySelector("input")!;
-    input.addEventListener("input", () => {
-      handlers.onSettingsChange({ [f.key]: input.value } as Partial<Settings>);
+  root.innerHTML = SETTINGS_FIELDS.map((f) => {
+    const id = `s-${f.key}`;
+    return fieldShell({
+      id,
+      label: f.label,
+      help: f.help,
+      control: `<input id="${id}" class="field-input" type="${f.type}" name="${f.key}"
+                        placeholder="${escapeAttr(f.placeholder ?? "")}"
+                        value="${escapeAttr(String(state.settings[f.key] ?? ""))}" />`,
     });
-    root.appendChild(wrap);
+  }).join("");
+
+  const status = $("#settings-status");
+  if (state.settings.facility) {
+    status.textContent = "Saved. Stays in your browser, never sent anywhere.";
+  } else {
+    status.textContent = "Stays in your browser. Nothing is sent.";
   }
 }
 
-/* ── Tourist cards ────────────────────────────────────────────────────────── */
+/* ─────────────────────────── Guests ─────────────────────────── */
 
 type FieldDef = {
   key: keyof Tourist;
   label: string;
-  type: "text" | "date" | "time" | "email" | "tel" | "textarea";
+  type: "text" | "date" | "time" | "email" | "tel";
   placeholder?: string;
-  list?: string;
+  help: string;
+  control?: "country" | "documentType" | "payment" | "gender";
   required?: boolean;
-  half?: boolean;
 };
 
-const FIELDS: FieldDef[] = [
-  { key: "stayFrom", label: "Arrival date", type: "date", required: true, half: true },
-  { key: "timeStayFrom", label: "Arrival time", type: "time", required: true, half: true },
-  { key: "foreseenStayUntil", label: "Departure date", type: "date", required: true, half: true },
-  { key: "timeEstimatedStayUntil", label: "Departure time", type: "time", required: true, half: true },
+const IDENTITY_FIELDS: FieldDef[] = [
+  { key: "touristName", label: "First name", type: "text", required: true, help: "The guest's given name, exactly as written on their passport or ID." },
+  { key: "touristSurname", label: "Last name", type: "text", required: true, help: "The guest's family name, exactly as written on their passport or ID." },
+  { key: "touristMiddleName", label: "Middle name (optional)", type: "text", help: "Only include if the guest has a middle name on their travel document." },
+  { key: "dateOfBirth", label: "Date of birth", type: "date", required: true, help: "The guest's date of birth, as printed on their passport or ID." },
+  { key: "citizenship", label: "Citizenship", type: "text", required: true, control: "country", help: "The country that issued the guest's passport or ID — i.e. the country of citizenship, which may differ from where they live." },
+  { key: "countryOfBirth", label: "Country of birth", type: "text", required: true, control: "country", help: "The country where the guest was born, as listed on their travel document." },
+  { key: "cityOfBirth", label: "City of birth", type: "text", required: true, help: "The town or city where the guest was born, as listed on their travel document." },
+  { key: "countryOfResidence", label: "Country of residence", type: "text", required: true, control: "country", help: "The country where the guest normally lives." },
+  { key: "cityOfResidence", label: "City of residence", type: "text", required: true, help: "The town or city where the guest normally lives." },
+  { key: "residenceAddress", label: "Home address (optional)", type: "text", help: "The guest's full street address at home — only if you have it." },
+  { key: "touristEmail", label: "Email (optional)", type: "email", help: "The guest's contact email if you have it. Helps eVisitor reach them if needed." },
+  { key: "touristTelephone", label: "Phone (optional)", type: "tel", help: "The guest's contact phone if you have it." },
+];
 
-  { key: "touristName", label: "First name", type: "text", required: true, half: true },
-  { key: "touristMiddleName", label: "Middle name", type: "text", half: true },
-  { key: "touristSurname", label: "Surname", type: "text", required: true, half: true },
-  { key: "dateOfBirth", label: "Date of birth", type: "date", required: true, half: true },
+const DOC_FIELDS: FieldDef[] = [
+  { key: "documentType", label: "ID document type", type: "text", required: true, control: "documentType", help: "What kind of document the guest is travelling with — usually a passport, sometimes a national ID card." },
+  { key: "documentNumber", label: "ID document number", type: "text", required: true, help: "The document number printed on the guest's passport or ID card." },
+];
 
-  { key: "documentType", label: "Document type", type: "text", required: true, half: true },
-  { key: "documentNumber", label: "Document number", type: "text", required: true, half: true },
+const STAY_FIELDS: FieldDef[] = [
+  { key: "stayFrom", label: "Check-in date", type: "date", required: true, help: "The date the guest arrives at your property." },
+  { key: "timeStayFrom", label: "Check-in time", type: "time", required: true, help: "The expected arrival time. Pre-filled from your defaults; change it per guest if needed." },
+  { key: "foreseenStayUntil", label: "Check-out date", type: "date", required: true, help: "The date the guest is expected to leave your property." },
+  { key: "timeEstimatedStayUntil", label: "Check-out time", type: "time", required: true, help: "The expected leaving time. Pre-filled from your defaults; change it per guest if needed." },
+];
 
-  { key: "citizenship", label: "Citizenship (ISO-3)", type: "text", required: true, half: true, list: "country-codes" },
-  { key: "countryOfBirth", label: "Country of birth (ISO-3)", type: "text", required: true, half: true, list: "country-codes" },
-  { key: "cityOfBirth", label: "City of birth", type: "text", required: true, half: true },
-  { key: "countryOfResidence", label: "Country of residence (ISO-3)", type: "text", required: true, half: true, list: "country-codes" },
-  { key: "cityOfResidence", label: "City of residence", type: "text", required: true, half: true },
-  { key: "residenceAddress", label: "Residence address", type: "text", half: true },
+const TAX_FIELDS: FieldDef[] = [
+  { key: "ttPaymentCategory", label: "Tourist tax category", type: "text", required: true, control: "payment", help: "How the tourist tax applies — standard rate, reduced rate (e.g. teens), or full exemption (e.g. young children, people with disabilities)." },
+  { key: "arrivalOrganisation", label: "Arrival code (MUP)", type: "text", required: true, help: "MUP code describing how this guest arrived — for example individual booking or organised group. Pre-filled from your defaults." },
+];
 
-  { key: "touristEmail", label: "Email (optional)", type: "email", half: true },
-  { key: "touristTelephone", label: "Phone (optional)", type: "tel", half: true },
-
-  { key: "borderCrossing", label: "Border crossing (optional)", type: "text", half: true },
-  { key: "passageDate", label: "Passage date (optional)", type: "date", half: true },
-
-  { key: "ttPaymentCategory", label: "Tourist tax category", type: "text", required: true, half: true },
-  { key: "arrivalOrganisation", label: "Arrival organisation (MUP code)", type: "text", required: true, half: true },
-
-  { key: "touristAgency", label: "Tourist agency OIB (optional)", type: "text", half: true },
-  { key: "offeredServiceType", label: "Offered service type (optional)", type: "text", half: true },
+const EXTRA_FIELDS: FieldDef[] = [
+  { key: "borderCrossing", label: "Border crossing (optional)", type: "text", help: "The name of the border crossing where the guest entered Croatia, if you have that detail." },
+  { key: "passageDate", label: "Border crossing date (optional)", type: "date", help: "The date the guest crossed the border into Croatia, if known." },
+  { key: "touristAgency", label: "Travel agency OIB (optional)", type: "text", help: "Override of the default. Only set if this particular guest came through a different travel agency — enter that agency's 11-digit OIB." },
+  { key: "offeredServiceType", label: "Service type offered (optional)", type: "text", help: "The kind of service you provide for this guest — e.g. bed only, bed and breakfast, half board, full board." },
 ];
 
 export function renderTouristList(state: AppState, handlers: Handlers): void {
@@ -147,27 +152,40 @@ export function renderTouristList(state: AppState, handlers: Handlers): void {
   state.tourists.forEach((t, idx) => {
     const v = validateTourist(t);
     totalErrors += v.errors.length;
-    const card = renderTouristCard(t, idx, v.errors, handlers);
-    root.appendChild(card);
+    root.appendChild(renderTouristCard(t, idx, v.errors, handlers));
   });
 
-  // Summary
-  const summary = $("#tourist-summary");
-  if (totalErrors === 0) {
-    summary.className = "chip chip-ok";
-    summary.textContent = `${state.tourists.length} guest${state.tourists.length === 1 ? "" : "s"} · ready`;
+  const summary = $("#guest-summary-row");
+  if (state.tourists.length === 0) {
+    summary.textContent = "No guests yet. Add one above.";
+    summary.className = "summary-row";
+  } else if (totalErrors === 0) {
+    summary.innerHTML = `<span class="chip chip-ok">All set</span> ${state.tourists.length} guest${state.tourists.length === 1 ? "" : "s"} ready to save.`;
+    summary.className = "summary-row";
   } else {
-    summary.className = "chip chip-error";
-    summary.textContent = `${totalErrors} field${totalErrors === 1 ? "" : "s"} need attention`;
+    summary.innerHTML = `<span class="chip chip-error">${totalErrors} field${totalErrors === 1 ? "" : "s"} to fix</span> Once they're filled in, you can save the file.`;
+    summary.className = "summary-row";
   }
 
   const downloadBtn = $("#btn-download") as HTMLButtonElement;
-  downloadBtn.disabled = totalErrors > 0 || state.tourists.length === 0;
+  const stickyBtn = $("#btn-download-sticky") as HTMLButtonElement;
+  const disabled = totalErrors > 0 || state.tourists.length === 0;
+  downloadBtn.disabled = disabled;
+  stickyBtn.disabled = disabled;
+
   const status = $("#download-status");
-  status.textContent =
-    totalErrors > 0
-      ? "Fix highlighted fields to enable download."
-      : `Ready: ${state.tourists.length} guest${state.tourists.length === 1 ? "" : "s"}.`;
+  const stickyStatus = $("#sticky-status");
+  if (state.tourists.length === 0) {
+    status.textContent = "Add at least one guest above first.";
+    stickyStatus.textContent = "Add a guest";
+  } else if (totalErrors > 0) {
+    status.textContent = "Fill in the missing fields above to enable saving.";
+    stickyStatus.textContent = `${totalErrors} to fix`;
+  } else {
+    const word = state.tourists.length === 1 ? "guest" : "guests";
+    status.textContent = `${state.tourists.length} ${word} ready. Click to save the file to your computer.`;
+    stickyStatus.textContent = `${state.tourists.length} ${word} ready`;
+  }
 }
 
 function renderTouristCard(
@@ -179,134 +197,196 @@ function renderTouristCard(
   const errorByField = new Map<keyof Tourist, string>();
   for (const e of errors) errorByField.set(e.field, e.message);
 
-  const card = document.createElement("article");
-  card.className = "card p-6 md:p-7";
-  card.dataset["id"] = t.id;
+  const article = document.createElement("article");
+  article.className = "guest-card";
+  article.dataset["id"] = t.id;
 
-  const num = String(idx + 1).padStart(2, "0");
-  card.innerHTML = `
-    <header class="flex items-start justify-between gap-4 mb-5">
-      <div class="flex items-baseline gap-4">
-        <span class="numeral text-5xl md:text-6xl text-[color:var(--color-adriatic)] leading-none">${num}</span>
-        <div>
-          <span class="eyebrow">Guest · ${shortId(t.id)}</span>
-          <h3 class="display-serif text-xl font-light mt-1">${guestDisplayName(t)}</h3>
-        </div>
+  const headlineName = guestDisplayName(t);
+  const sub = guestSubline(t);
+  const okChip =
+    errors.length === 0
+      ? `<span class="chip chip-ok">Looks good</span>`
+      : `<span class="chip chip-error">${errors.length} to fix</span>`;
+
+  article.innerHTML = `
+    <header class="guest-header">
+      <div>
+        <span class="guest-eyebrow">Guest ${idx + 1}</span>
+        <h3 class="guest-name">${escapeAttr(headlineName)}</h3>
+        ${sub ? `<p class="guest-sub">${escapeAttr(sub)}</p>` : ""}
       </div>
-      <div class="flex items-center gap-2">
-        ${errors.length === 0
-          ? `<span class="chip chip-ok">ok</span>`
-          : `<span class="chip chip-error">${errors.length} to fix</span>`}
-        <button class="btn btn-danger text-[12.5px] px-3 py-1.5" data-action="remove" aria-label="Remove guest">Remove</button>
+      <div class="guest-header-actions">
+        ${okChip}
+        <button type="button" class="btn btn-danger btn-small" data-action="remove">Remove guest</button>
       </div>
     </header>
 
-    <div class="grid md:grid-cols-2 gap-x-8 gap-y-5">
-      ${renderGenderField(t, errorByField)}
-      <div class="hidden md:block"></div>
-      ${FIELDS.map((f) => renderField(t, f, errorByField)).join("")}
-    </div>
+    ${section("Who is the guest", IDENTITY_FIELDS, t, errorByField)}
+    ${section("Travel document", DOC_FIELDS, t, errorByField)}
+    ${section("Stay dates", STAY_FIELDS, t, errorByField)}
+    ${section("Tax and arrival", TAX_FIELDS, t, errorByField)}
+
+    <details class="more-options">
+      <summary>More options <span class="chev" aria-hidden="true">›</span></summary>
+      ${section("", EXTRA_FIELDS, t, errorByField)}
+    </details>
   `;
 
-  card.addEventListener("input", (e) => {
-    const target = e.target as HTMLInputElement | HTMLTextAreaElement;
+  // Field input wiring
+  article.addEventListener("input", (e) => {
+    const target = e.target as HTMLInputElement | HTMLSelectElement;
+    if (!target.name) return;
+    handlers.onTouristChange(t.id, { [target.name]: target.value } as Partial<Tourist>);
+  });
+  article.addEventListener("change", (e) => {
+    const target = e.target as HTMLInputElement | HTMLSelectElement;
     if (!target.name) return;
     handlers.onTouristChange(t.id, { [target.name]: target.value } as Partial<Tourist>);
   });
 
-  card.querySelectorAll<HTMLButtonElement>("[data-gender]").forEach((b) => {
+  // Gender pills
+  article.querySelectorAll<HTMLButtonElement>("[data-gender]").forEach((b) => {
     b.addEventListener("click", () => {
       handlers.onTouristChange(t.id, { gender: b.dataset["gender"] as Tourist["gender"] });
     });
   });
 
-  card
+  // Remove
+  article
     .querySelector<HTMLButtonElement>("[data-action='remove']")!
     .addEventListener("click", () => handlers.onRemoveTourist(t.id));
 
-  return card;
+  return article;
+}
+
+function section(
+  title: string,
+  fields: FieldDef[],
+  t: Tourist,
+  errors: Map<keyof Tourist, string>,
+): string {
+  const heading = title ? `<h4 class="section-title">${title}</h4>` : "";
+
+  // Gender is rendered in-line in the identity section
+  const fieldsHtml = fields.map((f) => renderField(t, f, errors)).join("");
+  const genderHtml = fields === IDENTITY_FIELDS ? renderGender(t, errors) : "";
+
+  return `<section class="guest-section">
+    ${heading}
+    <div class="form-grid">${genderHtml}${fieldsHtml}</div>
+  </section>`;
 }
 
 function renderField(
   t: Tourist,
   f: FieldDef,
-  errorByField: Map<keyof Tourist, string>,
+  errors: Map<keyof Tourist, string>,
 ): string {
+  const id = `t-${t.id}-${String(f.key)}`;
   const value = String(t[f.key] ?? "");
-  const err = errorByField.get(f.key);
-  const invalid = err ? "true" : "false";
-  const cls = `field-input`;
+  const err = errors.get(f.key);
+  const ariaInvalid = err ? "true" : "false";
 
-  let control: string;
-  if (f.key === "documentType") {
-    control = `<select class="field-select" name="${f.key}" aria-invalid="${invalid}">
-      ${DOCUMENT_TYPES.map(
-        (d) => `<option value="${d.code}" ${d.code === value ? "selected" : ""}>${d.label}</option>`,
-      ).join("")}
+  let control = "";
+  if (f.control === "country") {
+    control = renderCountrySelect(id, f.key, value, ariaInvalid);
+  } else if (f.control === "documentType") {
+    control = `<select id="${id}" class="field-select" name="${f.key}" aria-invalid="${ariaInvalid}">
+      ${DOCUMENT_TYPES.map((d) => `<option value="${escapeAttr(d.code)}" ${d.code === value ? "selected" : ""}>${escapeAttr(d.label)}</option>`).join("")}
     </select>`;
-  } else if (f.key === "ttPaymentCategory") {
-    control = `<input class="${cls}" name="${f.key}" type="text" list="payment-categories"
-      placeholder="${f.placeholder ?? "Type or pick"}"
-      value="${escapeAttr(value)}" aria-invalid="${invalid}" />
-      <datalist id="payment-categories">
-        ${PAYMENT_CATEGORIES.map((p) => `<option value="${escapeAttr(p)}"></option>`).join("")}
-      </datalist>`;
-  } else if (f.type === "textarea") {
-    control = `<textarea class="field-textarea" name="${f.key}" aria-invalid="${invalid}">${escapeAttr(value)}</textarea>`;
+  } else if (f.control === "payment") {
+    control = `<select id="${id}" class="field-select" name="${f.key}" aria-invalid="${ariaInvalid}">
+      <option value="">Choose a category…</option>
+      ${PAYMENT_CATEGORIES.map((p) => `<option value="${escapeAttr(p)}" ${p === value ? "selected" : ""}>${escapeAttr(p)}</option>`).join("")}
+    </select>`;
   } else {
-    const listAttr = f.list ? `list="${f.list}"` : "";
-    control = `<input class="${cls}" name="${f.key}" type="${f.type}" ${listAttr}
-       placeholder="${escapeAttr(f.placeholder ?? "")}"
-       value="${escapeAttr(value)}" aria-invalid="${invalid}" />`;
+    control = `<input id="${id}" class="field-input" type="${f.type}" name="${f.key}"
+              placeholder="${escapeAttr(f.placeholder ?? "")}"
+              value="${escapeAttr(value)}" aria-invalid="${ariaInvalid}" />`;
   }
 
-  const colspan = f.half ? "" : "md:col-span-2";
-  return `
-    <label class="${colspan}">
-      <span class="field-label">${f.label}${f.required ? "" : " · optional"}</span>
-      ${control}
-      ${err ? `<span class="field-error">${escapeAttr(err)}</span>` : ""}
-    </label>
-  `;
+  return fieldShell({
+    id,
+    label: f.label,
+    help: f.help,
+    control,
+    error: err,
+  });
 }
 
-function renderGenderField(t: Tourist, errorByField: Map<keyof Tourist, string>): string {
-  const err = errorByField.get("gender");
-  return `
-    <div>
-      <span class="field-label">Gender</span>
+function renderCountrySelect(
+  id: string,
+  name: keyof Tourist,
+  value: string,
+  ariaInvalid: string,
+): string {
+  const options = SORTED_COUNTRIES.map(
+    (c) => `<option value="${c.code}" ${c.code === value ? "selected" : ""}>${escapeAttr(c.name)}</option>`,
+  ).join("");
+  return `<select id="${id}" class="field-select" name="${String(name)}" aria-invalid="${ariaInvalid}">
+    <option value="">Choose a country…</option>
+    ${options}
+  </select>`;
+}
+
+function renderGender(t: Tourist, errors: Map<keyof Tourist, string>): string {
+  const err = errors.get("gender");
+  return fieldShell({
+    id: `t-${t.id}-gender`,
+    label: "Sex (as on document)",
+    help: "Pick the option that matches the guest's travel document.",
+    error: err,
+    control: `
       <div class="gender-group" role="group" aria-invalid="${err ? "true" : "false"}">
         <button type="button" class="gender-pill" data-gender="M" aria-pressed="${t.gender === "M"}">Male</button>
         <button type="button" class="gender-pill" data-gender="F" aria-pressed="${t.gender === "F"}">Female</button>
       </div>
-      ${err ? `<div class="field-error">${escapeAttr(err)}</div>` : ""}
-    </div>
+    `,
+  });
+}
+
+/* ─────────────────────────── Field shell ─────────────────────────── */
+
+type ShellArgs = {
+  id: string;
+  label: string;
+  help: string;
+  control: string;
+  error?: string | undefined;
+};
+
+function fieldShell({ id, label, help, control, error }: ShellArgs): string {
+  const helpId = `${id}-help`;
+  return `
+    <label class="field" for="${id}">
+      <span class="field-label-row">
+        <span class="field-label">${escapeAttr(label)}</span>
+        <button type="button" class="help-btn" aria-controls="${helpId}" aria-expanded="false"
+                aria-label="Help: ${escapeAttr(label)}" data-help-toggle>?</button>
+      </span>
+      ${control}
+      <span id="${helpId}" class="field-help" hidden>${escapeAttr(help)}</span>
+      ${error ? `<span class="field-error">${escapeAttr(error)}</span>` : ""}
+    </label>
   `;
 }
 
-/* ── XML preview ──────────────────────────────────────────────────────────── */
+/* ─────────────────────────── File preview ─────────────────────────── */
 
 export function renderXmlPreview(xml: string): void {
   const pre = $("#xml-preview");
-  pre.innerHTML = formatXmlForPreview(xml);
-}
-
-function formatXmlForPreview(xml: string): string {
-  return xml
+  pre.innerHTML = xml
     .split("\n")
-    .map((line) => `<code>${highlightXmlLine(line)}</code>`)
+    .map((line) => `<code>${highlightLine(line)}</code>`)
     .join("");
 }
 
-function highlightXmlLine(line: string): string {
-  // Encode entities so we never inject raw markup, then colourise tag names.
+function highlightLine(line: string): string {
   const safe = line
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
-
   if (safe.trim().startsWith("&lt;?xml")) return `<span class="xml-decl">${safe}</span>`;
-
   return safe.replace(
     /(&lt;\/?)([A-Za-z][\w]*)(&gt;)/g,
     (_, lt: string, name: string, gt: string) =>
@@ -314,23 +394,43 @@ function highlightXmlLine(line: string): string {
   );
 }
 
-/* ── Helpers ──────────────────────────────────────────────────────────────── */
+/* ─────────────────────────── Helpers ─────────────────────────── */
 
 function escapeAttr(value: string): string {
   return xmlEscape(value);
-}
-
-function shortId(id: string): string {
-  return id.slice(0, 8);
 }
 
 function guestDisplayName(t: Tourist): string {
   const name = [t.touristName, t.touristMiddleName, t.touristSurname]
     .filter(Boolean)
     .join(" ");
-  if (name) return name;
-  return "Untitled guest";
+  return name || "New guest";
 }
 
-// Re-export utilities consumed elsewhere
-export { toEvisitorDate, toEvisitorTime };
+function guestSubline(t: Tourist): string {
+  const parts: string[] = [];
+  const country = t.citizenship ? countryName(t.citizenship) : undefined;
+  if (country) parts.push(country);
+  if (t.stayFrom && t.foreseenStayUntil) {
+    parts.push(`${formatHumanDate(t.stayFrom)} → ${formatHumanDate(t.foreseenStayUntil)}`);
+  }
+  return parts.join(" · ");
+}
+
+function formatHumanDate(iso: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  if (!m) return iso;
+  const months = [
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+  ];
+  return `${parseInt(m[3]!, 10)} ${months[parseInt(m[2]!, 10) - 1]} ${m[1]}`;
+}
+
+/* ─────────────────────────── Re-render orchestration ─────────────────────────── */
+
+export function renderAll(state: AppState, handlers: Handlers): void {
+  renderSettings(state);
+  renderTouristList(state, handlers);
+  renderXmlPreview(serialiseImportTourists(state.tourists));
+}

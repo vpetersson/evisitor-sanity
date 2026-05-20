@@ -40,38 +40,38 @@ export function validateTourist(t: Tourist): TouristValidation {
     errors.push({ field, message });
 
   for (const field of REQUIRED_FIELDS) {
-    if (!t[field]) push(field, "Required");
+    if (!t[field]) push(field, "Please fill this in.");
   }
 
   for (const field of COUNTRY_FIELDS) {
     const code = t[field];
     if (code && !isValidCountryCode(code)) {
-      push(field, "Use an ISO 3166-1 alpha-3 code");
+      push(field, "Please pick a country from the list.");
     }
   }
 
   if (t.documentType && !isValidDocumentType(t.documentType)) {
-    push("documentType", "Unknown document type");
+    push("documentType", "Please pick a document type.");
   }
 
   if (t.stayFrom && !ISO_DATE_RE.test(t.stayFrom)) {
-    push("stayFrom", "Invalid date");
+    push("stayFrom", "Please enter a valid date.");
   }
   if (t.foreseenStayUntil && !ISO_DATE_RE.test(t.foreseenStayUntil)) {
-    push("foreseenStayUntil", "Invalid date");
+    push("foreseenStayUntil", "Please enter a valid date.");
   }
   if (t.dateOfBirth && !ISO_DATE_RE.test(t.dateOfBirth)) {
-    push("dateOfBirth", "Invalid date");
+    push("dateOfBirth", "Please enter a valid date.");
   }
   if (t.passageDate && !ISO_DATE_RE.test(t.passageDate)) {
-    push("passageDate", "Invalid date");
+    push("passageDate", "Please enter a valid date.");
   }
 
   if (t.timeStayFrom && !TIME_RE.test(t.timeStayFrom)) {
-    push("timeStayFrom", "Invalid time");
+    push("timeStayFrom", "Please enter a valid time.");
   }
   if (t.timeEstimatedStayUntil && !TIME_RE.test(t.timeEstimatedStayUntil)) {
-    push("timeEstimatedStayUntil", "Invalid time");
+    push("timeEstimatedStayUntil", "Please enter a valid time.");
   }
 
   if (
@@ -81,16 +81,16 @@ export function validateTourist(t: Tourist): TouristValidation {
     ISO_DATE_RE.test(t.foreseenStayUntil) &&
     t.foreseenStayUntil < t.stayFrom
   ) {
-    push("foreseenStayUntil", "Departure must be on or after arrival");
+    push("foreseenStayUntil", "Check-out should be on or after check-in.");
   }
 
   if (t.dateOfBirth && ISO_DATE_RE.test(t.dateOfBirth)) {
     const today = new Date().toISOString().slice(0, 10);
-    if (t.dateOfBirth > today) push("dateOfBirth", "Cannot be in the future");
+    if (t.dateOfBirth > today) push("dateOfBirth", "Date of birth can't be in the future.");
   }
 
   if (t.touristEmail && !EMAIL_RE.test(t.touristEmail)) {
-    push("touristEmail", "Invalid email");
+    push("touristEmail", "That doesn't look like a valid email.");
   }
 
   return { ok: errors.length === 0, errors };
