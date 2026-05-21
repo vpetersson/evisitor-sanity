@@ -30,6 +30,7 @@ const TAG_TO_FIELD: Record<string, keyof Tourist> = {
   ArrivalOrganisation: "arrivalOrganisation",
   TouristAgency: "touristAgency",
   OfferedServiceType: "offeredServiceType",
+  IsTTFlatRatePaymentVacationHome: "isTTFlatRatePaymentVacationHome",
 };
 
 const DATE_FIELDS: ReadonlySet<keyof Tourist> = new Set([
@@ -68,6 +69,7 @@ function emptyTourist(): Tourist {
     arrivalOrganisation: "",
     touristAgency: "",
     offeredServiceType: "",
+    isTTFlatRatePaymentVacationHome: "true",
   };
 }
 

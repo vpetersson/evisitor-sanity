@@ -36,6 +36,7 @@ function makeTourist(overrides: Partial<Tourist> = {}): Tourist {
     arrivalOrganisation: "PUI",
     touristAgency: "",
     offeredServiceType: "",
+    isTTFlatRatePaymentVacationHome: "true",
     ...overrides,
   };
 }
@@ -131,6 +132,13 @@ describe("serialiseImportTourists", () => {
     ]);
     expect(xml).toContain(
       `<TouristSurname>O&apos;Reilly &amp; &quot;Sons&quot;</TouristSurname>`,
+    );
+  });
+
+  it("always emits the holiday vacation-home flag", () => {
+    const xml = serialiseImportTourists([makeTourist()]);
+    expect(xml).toContain(
+      "<IsTTFlatRatePaymentVacationHome>true</IsTTFlatRatePaymentVacationHome>",
     );
   });
 

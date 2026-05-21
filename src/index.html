@@ -3,8 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>evisitor sanity — quietly register your stay</title>
-    <meta name="description" content="A calm, simple way to handle eVisitor (Croatia) check-ins. Guests fill in their details; hosts add the rest and upload to eVisitor. Everything stays in your browser." />
+    <title>evisitor sanity — the secure way to handle Croatian guest registration</title>
+    <meta name="description" content="The easiest, most private way to handle Croatian guest registration (eVisitor). Guests fill in their details and send a file; hosts collect files and upload to eVisitor. Nothing leaves your browser." />
     <meta name="theme-color" content="#f6f1e7" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#15140f" media="(prefers-color-scheme: dark)" />
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
@@ -36,9 +36,10 @@
 
       <!-- ─────────── Mode chooser (only on first visit) ─────────── -->
       <section id="mode-chooser" class="mode-chooser" hidden>
-        <h1 class="hero-title">A calmer way through<br /><span class="hero-italic">eVisitor.</span></h1>
+        <h1 class="hero-title">The secure way to share<br /><span class="hero-italic">your check-in details.</span></h1>
         <p class="hero-lede">
-          Pick your role to get the right form. You can switch at any time — your role is remembered on this device.
+          Croatian law requires every overnight stay to be reported to the authorities. This page lets you and
+          your host handle that paperwork without your data ever leaving your devices. Pick your role to start.
         </p>
         <div class="role-tiles">
           <button type="button" class="role-tile" data-pick-mode="guest">
@@ -49,7 +50,7 @@
               </svg>
             </span>
             <span class="role-title">I'm a guest</span>
-            <span class="role-sub">Fill in your details and send a file to your host. Takes a couple of minutes.</span>
+            <span class="role-sub">Enter your check-in details once, save a small file, send it to your host. About two minutes.</span>
           </button>
           <button type="button" class="role-tile" data-pick-mode="host">
             <span class="role-icon" aria-hidden="true">
@@ -59,23 +60,24 @@
               </svg>
             </span>
             <span class="role-title">I'm a host</span>
-            <span class="role-sub">Receive guest files, add your property and tax details, and save the file for eVisitor.</span>
+            <span class="role-sub">Collect guest files, add your property defaults, and save one file for eVisitor.</span>
           </button>
         </div>
-        <p class="reassurance">Everything stays in your browser. Nothing is sent to any server.</p>
+        <p class="reassurance">Everything stays in your browser. No server, no account, no third parties.</p>
       </section>
 
       <!-- ─────────── GUEST FLOW ─────────── -->
       <section id="guest-flow" hidden>
         <section class="hero">
           <h1 class="hero-title">
-            Help your host register you<br />
-            <span class="hero-italic">for eVisitor.</span>
+            Your check-in details.<br />
+            <span class="hero-italic">Once. Securely.</span>
           </h1>
           <p class="hero-lede">
-            Croatian hosts must report every overnight guest to eVisitor. To save your host time, fill in your details
-            once below and send the resulting file to them. They'll add the property and tax bits and upload it.
-            Nothing is ever sent through this page — when you close the tab, the form clears.
+            When you stay overnight anywhere in Croatia, your host is legally required to report your stay to the
+            authorities (through a national system called eVisitor). This is the secure way to hand over the
+            details they need: fill in the form below once, save the small file, and send it to your host. They
+            handle the rest. Your data never leaves this device.
           </p>
 
           <ol class="hero-steps">
@@ -83,21 +85,21 @@
               <span class="step-dot">1</span>
               <span class="step-text">
                 <strong>Fill in your details</strong>
-                <span>Name, document, dates — the same things you give at any hotel.</span>
+                <span>Name, document, dates — the same things any hotel asks at check-in.</span>
               </span>
             </li>
             <li>
               <span class="step-dot">2</span>
               <span class="step-text">
                 <strong>Save the file</strong>
-                <span>One small file lands on your device.</span>
+                <span>A small file lands on your device.</span>
               </span>
             </li>
             <li>
               <span class="step-dot">3</span>
               <span class="step-text">
                 <strong>Send it to your host</strong>
-                <span>By email, WhatsApp, anything. They'll do the rest.</span>
+                <span>Email, WhatsApp, however. Your host takes it from there.</span>
               </span>
             </li>
           </ol>
@@ -107,7 +109,7 @@
           <header class="step-header">
             <span class="step-eyebrow">Step 1</span>
             <h2>Your details</h2>
-            <p class="step-sub">For a family or group, add a row per person. The host needs each guest separately.</p>
+            <p class="step-sub">One row per person. For a family or group, add another row for everyone else staying with you.</p>
           </header>
 
           <div id="guest-tourist-list" class="guest-list"></div>
@@ -129,8 +131,8 @@
         <section class="step-card step-download">
           <header class="step-header">
             <span class="step-eyebrow">Step 2</span>
-            <h2>Save the file</h2>
-            <p class="step-sub">Click below to save the file to your device, then send it to your host. The file contains only what you typed above.</p>
+            <h2>Save the file, send it to your host</h2>
+            <p class="step-sub">The file contains only what you typed above — nothing more. It's saved locally to your device; send it to your host however you'd like.</p>
           </header>
 
           <button id="btn-guest-download" class="btn btn-primary btn-big" type="button">
@@ -152,13 +154,14 @@
       <section id="host-flow" hidden>
         <section class="hero">
           <h1 class="hero-title">
-            Register your guests for eVisitor<br />
-            <span class="hero-italic">without losing your afternoon.</span>
+            eVisitor registration,<br />
+            <span class="hero-italic">done properly.</span>
           </h1>
           <p class="hero-lede">
-            Add your property once, drop in each guest's file (or type them in by hand), then save one file and
-            upload it on eVisitor under <strong>Turisti → Prijava putem datoteke</strong>. Everything stays in your
-            browser.
+            Save your property defaults once. Drop in each guest's file (or add them by hand), set the tax category
+            and arrival code, then save the final file and upload it on eVisitor under
+            <strong>Turisti → Prijava putem datoteke</strong>. Everything stays on this device — no server, no
+            account, no analytics.
           </p>
 
           <ol class="hero-steps">
@@ -166,13 +169,13 @@
               <span class="step-dot">1</span>
               <span class="step-text">
                 <strong>Your property</strong>
-                <span>Tell us your facility code once — saved on this device.</span>
+                <span>Facility code and defaults. One-time setup, saved on this device.</span>
               </span>
             </li>
             <li>
               <span class="step-dot">2</span>
               <span class="step-text">
-                <strong>Add your guests</strong>
+                <strong>Your guests</strong>
                 <span>Import the file each guest sent you, or add them by hand.</span>
               </span>
             </li>
@@ -180,7 +183,7 @@
               <span class="step-dot">3</span>
               <span class="step-text">
                 <strong>Save and upload</strong>
-                <span>One file, one upload on eVisitor. Done.</span>
+                <span>One file, one upload on eVisitor.</span>
               </span>
             </li>
           </ol>
@@ -190,7 +193,7 @@
           <header class="step-header">
             <span class="step-eyebrow">Step 1</span>
             <h2>Your property</h2>
-            <p class="step-sub">Saved in your browser. Nothing is sent. You only need to do this once.</p>
+            <p class="step-sub">One-time setup. Saved on this device. Never sent anywhere.</p>
           </header>
           <div id="settings-fields" class="form-grid"></div>
           <p id="settings-status" class="reassurance">Stays in your browser. Nothing is sent.</p>
@@ -201,8 +204,9 @@
             <span class="step-eyebrow">Step 2</span>
             <h2>Your guests</h2>
             <p class="step-sub">
-              The easiest way: have each guest fill in their details (using this page in guest mode) and send you
-              the file. Then click <strong>Import a guest file</strong> below. Or add them by hand.
+              The clean way: share this page's <em>guest</em> mode with each guest before arrival and have them
+              send you the resulting file. Then click <strong>Import a guest file</strong> below. You can also add
+              guests by hand.
             </p>
           </header>
 
@@ -234,10 +238,10 @@
             <span class="step-eyebrow">Step 3</span>
             <h2>Save and upload</h2>
             <p class="step-sub">
-              Click below. Your computer will save a file. Then log into
+              Save the file to your device, then log into
               <a href="https://www.evisitor.hr/" target="_blank" rel="noopener">eVisitor</a>,
               open <strong>Turisti</strong>, choose <strong>Prijava putem datoteke</strong>,
-              and upload it.
+              and upload it. One file, one upload — that's the whole job.
             </p>
           </header>
 
@@ -265,12 +269,12 @@
 
         <div class="privacy-grid">
           <article>
-            <h3>While you use this page</h3>
+            <h3>On this page</h3>
             <ul class="privacy-list">
-              <li><strong>Nothing leaves your browser.</strong> No data is sent to a server, ever. There is no backend.</li>
-              <li><strong>No cookies, no tracking, no analytics.</strong> No third-party scripts run on this page.</li>
-              <li><strong>It gets zapped when you close the tab.</strong> The only data we remember between visits is, if you're a host, your property defaults — so you don't have to retype them. You can clear them at any time with the button below.</li>
-              <li><strong>The file is yours.</strong> When you save the file, it goes only to your device. Nobody else sees it unless you choose to share it.</li>
+              <li><strong>Nothing leaves your browser.</strong> There is no server. No data is ever transmitted to us or to anyone else.</li>
+              <li><strong>No cookies. No analytics. No third-party scripts.</strong> Nothing tracks you, here or elsewhere.</li>
+              <li><strong>Closing the tab wipes everything.</strong> The only exception: if you're a host, your property defaults are kept locally so you don't have to retype them. Clear them at any time with the button below.</li>
+              <li><strong>The file is yours alone.</strong> It saves to your device; nobody else sees it unless you decide to share it.</li>
             </ul>
             <button id="btn-clear-storage" class="btn btn-danger" type="button" style="margin-top: 14px;">
               Forget my saved details
@@ -278,11 +282,11 @@
           </article>
 
           <article>
-            <h3>What eVisitor collects, once uploaded</h3>
+            <h3>What the authorities receive, once the host uploads</h3>
             <p class="privacy-paragraph">
-              eVisitor is run by the Croatian National Tourist Board. Every accommodation provider is required by
-              law (Zakon o boravišnoj pristojbi; Zakon o pružanju usluga u turizmu) to register every overnight
-              guest. For each guest, eVisitor records:
+              Croatian law (Zakon o boravišnoj pristojbi; Zakon o pružanju usluga u turizmu) requires every
+              accommodation provider to register every overnight guest in a national system called eVisitor, run by
+              the Croatian National Tourist Board. For each guest, eVisitor records:
             </p>
             <ul class="privacy-list">
               <li>Full name and sex</li>
@@ -295,8 +299,9 @@
               <li>How the guest arrived (organised, individual, etc.)</li>
             </ul>
             <p class="privacy-paragraph">
-              That data is shared with the Ministry of the Interior (MUP) for border-tracking purposes and with the
-              local tourist board for tourist-tax accounting. For the official details, see
+              That data is shared with the Ministry of the Interior (MUP) for border-tracking and with the local
+              tourist board for tourist-tax accounting. The same data would be required at any hotel reception in
+              Croatia. For official details, see
               <a href="https://www.evisitor.hr/" target="_blank" rel="noopener">evisitor.hr</a> and the
               <a href="https://www.evisitor.hr/eVisitorWiki/Javno.Web-API.ashx" target="_blank" rel="noopener">eVisitor wiki</a>.
             </p>

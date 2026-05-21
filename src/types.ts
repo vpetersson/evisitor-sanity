@@ -38,6 +38,7 @@ export interface Tourist {
   arrivalOrganisation: string;
   touristAgency: string;
   offeredServiceType: string;
+  isTTFlatRatePaymentVacationHome: string;
 }
 
 export interface AppState {

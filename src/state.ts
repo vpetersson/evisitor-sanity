@@ -89,6 +89,7 @@ export function blankTourist(settings: Settings): Tourist {
     arrivalOrganisation: settings.defaultArrivalOrg,
     touristAgency: settings.agencyOib,
     offeredServiceType: "",
+    isTTFlatRatePaymentVacationHome: "true",
   };
 }
 

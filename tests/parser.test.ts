@@ -32,6 +32,7 @@ function makeTourist(overrides: Partial<Tourist> = {}): Tourist {
     arrivalOrganisation: "PUI",
     touristAgency: "",
     offeredServiceType: "",
+    isTTFlatRatePaymentVacationHome: "true",
     ...overrides,
   };
 }

@@ -28,6 +28,7 @@ const REQUIRED_FIELD_ORDER: ReadonlyArray<keyof Tourist> = [
   "arrivalOrganisation",
   "touristAgency",
   "offeredServiceType",
+  "isTTFlatRatePaymentVacationHome",
 ];
 
 const FIELD_TO_TAG: Record<keyof Tourist, string> = {
@@ -58,6 +59,7 @@ const FIELD_TO_TAG: Record<keyof Tourist, string> = {
   arrivalOrganisation: "ArrivalOrganisation",
   touristAgency: "TouristAgency",
   offeredServiceType: "OfferedServiceType",
+  isTTFlatRatePaymentVacationHome: "IsTTFlatRatePaymentVacationHome",
 };
 
 const DATE_FIELDS: ReadonlySet<keyof Tourist> = new Set([

@@ -188,11 +188,6 @@ const EXTRA_FIELDS: FieldDef[] = [
   { key: "offeredServiceType", label: "Service type offered (optional)", type: "text", help: "What you offer this guest — e.g. bed only, bed and breakfast, half board, full board." },
 ];
 
-const GUEST_EXTRA_FIELDS: FieldDef[] = [
-  { key: "borderCrossing", label: "Border crossing (optional)", type: "text", help: "If you know it, the name of the border crossing where you entered Croatia." },
-  { key: "passageDate", label: "Border crossing date (optional)", type: "date", help: "The date you crossed the border into Croatia, if you know it." },
-];
-
 /* ─────────────────────────── Guest flow ─────────────────────────── */
 
 function renderGuestFlow(state: AppState, handlers: Handlers): void {
@@ -222,7 +217,7 @@ function renderGuestFlow(state: AppState, handlers: Handlers): void {
     summary.textContent = "Add at least one person above.";
     summary.className = "summary-row";
   } else if (totalErrors === 0) {
-    summary.innerHTML = `<span class="chip chip-ok">All set</span> Ready to save and send to your host.`;
+    summary.innerHTML = `<span class="chip chip-ok">All set</span> Save the file and send it to your host.`;
     summary.className = "summary-row";
   } else {
     summary.innerHTML = `<span class="chip chip-error">${totalErrors} field${totalErrors === 1 ? "" : "s"} to fill in</span> Then you can save the file.`;
@@ -347,6 +342,12 @@ function renderTouristCard(
       ? `<p class="guest-hint">Add the tax category and arrival code below to finish this guest.</p>`
       : "";
 
+  // Guests see only required fields; hosts see optional fields too.
+  const identityFields =
+    opts.mode === "guest"
+      ? IDENTITY_FIELDS.filter((f) => f.required)
+      : IDENTITY_FIELDS;
+
   article.innerHTML = `
     <header class="guest-header">
       <div>
@@ -360,20 +361,24 @@ function renderTouristCard(
       </div>
     </header>
     ${hostHint}
-    ${section(opts.mode === "guest" ? "About you" : "Who is the guest", IDENTITY_FIELDS, t, errorByField, opts.mode)}
-    ${section("Travel document", DOC_FIELDS, t, errorByField, opts.mode)}
-    ${section("Stay dates", STAY_FIELDS, t, errorByField, opts.mode)}
-    ${opts.mode === "host" ? section("Tax and arrival", TAX_FIELDS, t, errorByField, opts.mode) : ""}
-    <details class="more-options">
-      <summary>More options <span class="chev" aria-hidden="true">›</span></summary>
-      ${section(
-        "",
-        opts.mode === "guest" ? GUEST_EXTRA_FIELDS : EXTRA_FIELDS,
-        t,
-        errorByField,
-        opts.mode,
-      )}
-    </details>
+    <section class="guest-section">
+      <h4 class="section-title">${opts.mode === "guest" ? "About you" : "Who is the guest"}</h4>
+      <div class="form-grid">
+        ${renderGender(t, errorByField)}
+        ${identityFields.map((f) => renderField(t, f, errorByField)).join("")}
+      </div>
+    </section>
+    ${section("Travel document", DOC_FIELDS, t, errorByField)}
+    ${section("Stay dates", STAY_FIELDS, t, errorByField)}
+    ${opts.mode === "host" ? section("Tax and arrival", TAX_FIELDS, t, errorByField) : ""}
+    ${
+      opts.mode === "host"
+        ? `<details class="more-options">
+             <summary>More options <span class="chev" aria-hidden="true">›</span></summary>
+             ${section("", EXTRA_FIELDS, t, errorByField)}
+           </details>`
+        : ""
+    }
   `;
 
   article.addEventListener("input", (e) => {
@@ -403,14 +408,12 @@ function section(
   fields: FieldDef[],
   t: Tourist,
   errors: Map<keyof Tourist, string>,
-  _mode: Mode,
 ): string {
   const heading = title ? `<h4 class="section-title">${title}</h4>` : "";
   const fieldsHtml = fields.map((f) => renderField(t, f, errors)).join("");
-  const genderHtml = fields === IDENTITY_FIELDS ? renderGender(t, errors) : "";
   return `<section class="guest-section">
     ${heading}
-    <div class="form-grid">${genderHtml}${fieldsHtml}</div>
+    <div class="form-grid">${fieldsHtml}</div>
   </section>`;
 }
 
