@@ -638,6 +638,177 @@ details[open] > summary .chev { transform: rotate(90deg); }
   white-space: nowrap;
 }
 
+/* ── Mode chooser ─────────────────────────────────────────────── */
+.mode-chooser { padding: 16px 0 8px; }
+.role-tiles {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+  margin-top: 22px;
+}
+@media (min-width: 640px) { .role-tiles { grid-template-columns: 1fr 1fr; } }
+
+.role-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  text-align: left;
+  background: #fdfaf2;
+  border: 1px solid var(--color-rule);
+  border-radius: var(--radius-lg);
+  padding: 22px;
+  cursor: pointer;
+  color: var(--color-ink);
+  transition: transform 180ms var(--ease-out-soft),
+              border-color 180ms var(--ease-out-soft),
+              box-shadow 180ms var(--ease-out-soft),
+              background-color 180ms var(--ease-out-soft);
+}
+.role-tile:hover {
+  border-color: var(--color-adriatic);
+  background: linear-gradient(180deg, #fdfaf2, var(--color-paper));
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-lift);
+}
+.role-tile:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--color-adriatic) 35%, transparent);
+  outline-offset: 2px;
+}
+.role-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  background: var(--color-adriatic);
+  color: var(--color-paper);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.role-title {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 24px;
+  letter-spacing: -0.01em;
+}
+.role-sub {
+  font-size: 14.5px;
+  color: var(--color-ink-2);
+  line-height: 1.5;
+}
+
+/* Header role toggle */
+.mode-toggle {
+  display: inline-flex;
+  background: var(--color-paper-2);
+  border: 1px solid var(--color-rule);
+  border-radius: 999px;
+  padding: 3px;
+  gap: 2px;
+}
+.mode-toggle-btn {
+  border: 0;
+  background: transparent;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-ink-3);
+  min-height: 30px;
+}
+.mode-toggle-btn[aria-pressed="true"] {
+  background: var(--color-adriatic);
+  color: var(--color-paper);
+}
+@media (max-width: 520px) {
+  .mode-toggle-btn { padding: 6px 9px; font-size: 12px; }
+}
+
+/* ── Import row ───────────────────────────────────────────────── */
+.import-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.import-btn {
+  cursor: pointer;
+}
+.guest-hint {
+  margin: -6px 0 14px;
+  font-size: 13.5px;
+  color: var(--color-terracotta);
+}
+.reassurance-ok { color: var(--color-sage); }
+.reassurance-error { color: var(--color-terracotta); }
+
+/* ── Privacy section ──────────────────────────────────────────── */
+.privacy {
+  margin-top: 8px;
+  padding: 28px 22px;
+  background: var(--color-paper-2);
+  border: 1px dashed var(--color-rule);
+  border-radius: var(--radius-lg);
+}
+@media (min-width: 760px) {
+  .privacy { padding: 36px 32px; }
+}
+.privacy-header { margin-bottom: 22px; }
+.privacy-header h2 {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: clamp(1.5rem, 3vw, 1.9rem);
+  letter-spacing: -0.01em;
+  margin: 4px 0 0;
+}
+.privacy-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 28px;
+}
+@media (min-width: 760px) {
+  .privacy-grid { grid-template-columns: 1fr 1fr; gap: 36px; }
+}
+.privacy h3 {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 15px;
+  margin: 0 0 10px;
+  color: var(--color-ink);
+}
+.privacy-paragraph {
+  font-size: 14.5px;
+  color: var(--color-ink-2);
+  line-height: 1.6;
+  margin: 12px 0;
+}
+.privacy-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.privacy-list li {
+  font-size: 14.5px;
+  color: var(--color-ink-2);
+  line-height: 1.55;
+  padding-left: 22px;
+  position: relative;
+}
+.privacy-list li::before {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 9px;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--color-adriatic);
+}
+.privacy-list li strong { color: var(--color-ink); font-weight: 600; }
+
 /* ── Dark mode ────────────────────────────────────────────────── */
 @media (prefers-color-scheme: dark) {
   :root {
@@ -664,8 +835,10 @@ details[open] > summary .chev { transform: rotate(90deg); }
       radial-gradient(900px 500px at -10% 110%, rgba(224,138,100,0.05), transparent 60%);
   }
   .step-card,
-  .guest-card { background: linear-gradient(180deg, #1a1913, #15140f); }
+  .guest-card,
+  .role-tile { background: linear-gradient(180deg, #1a1913, #15140f); }
   .field-input, .field-select { background: #1d1c16; }
   .btn-primary { color: #15140f; }
   .help-btn { background: #1d1c16; }
+  .privacy { background: #19171f00; }
 }

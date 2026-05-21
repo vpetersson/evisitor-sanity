@@ -1,8 +1,8 @@
 import { isValidCountryCode } from "./countries.ts";
 import { isValidDocumentType } from "./document-types.ts";
-import type { Tourist, TouristValidation, ValidationError } from "./types.ts";
+import type { Mode, Tourist, TouristValidation, ValidationError } from "./types.ts";
 
-const REQUIRED_FIELDS: ReadonlyArray<keyof Tourist> = [
+const HOST_REQUIRED_FIELDS: ReadonlyArray<keyof Tourist> = [
   "id",
   "facility",
   "stayFrom",
@@ -24,6 +24,27 @@ const REQUIRED_FIELDS: ReadonlyArray<keyof Tourist> = [
   "arrivalOrganisation",
 ];
 
+// Guests don't know property-, tax-, or arrival-related fields. The host
+// fills those in after importing the guest's file.
+const GUEST_REQUIRED_FIELDS: ReadonlyArray<keyof Tourist> = [
+  "id",
+  "stayFrom",
+  "timeStayFrom",
+  "foreseenStayUntil",
+  "timeEstimatedStayUntil",
+  "documentType",
+  "documentNumber",
+  "touristName",
+  "touristSurname",
+  "gender",
+  "dateOfBirth",
+  "countryOfBirth",
+  "cityOfBirth",
+  "citizenship",
+  "countryOfResidence",
+  "cityOfResidence",
+];
+
 const COUNTRY_FIELDS: ReadonlyArray<keyof Tourist> = [
   "countryOfBirth",
   "citizenship",
@@ -34,12 +55,16 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_RE = /^\d{2}:\d{2}$/;
 
-export function validateTourist(t: Tourist): TouristValidation {
+export function validateTourist(
+  t: Tourist,
+  mode: Mode = "host",
+): TouristValidation {
   const errors: ValidationError[] = [];
   const push = (field: keyof Tourist, message: string) =>
     errors.push({ field, message });
 
-  for (const field of REQUIRED_FIELDS) {
+  const required = mode === "guest" ? GUEST_REQUIRED_FIELDS : HOST_REQUIRED_FIELDS;
+  for (const field of required) {
     if (!t[field]) push(field, "Please fill this in.");
   }
 

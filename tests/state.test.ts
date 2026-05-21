@@ -1,5 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { blankTourist, loadSettings, saveSettings } from "../src/state.ts";
+import {
+  blankTourist,
+  clearMode,
+  clearSettings,
+  loadMode,
+  loadSettings,
+  saveMode,
+  saveSettings,
+} from "../src/state.ts";
 
 const memoryStorage = (): Storage => {
   const data = new Map<string, string>();
@@ -24,7 +32,7 @@ afterEach(() => {
 });
 
 describe("settings persistence", () => {
-  it("returns defaults when localStorage is empty", () => {
+  it("returns defaults when nothing is stored", () => {
     const s = loadSettings();
     expect(s.facility).toBe("");
     expect(s.defaultCheckInTime).toBe("15:00");
@@ -47,6 +55,45 @@ describe("settings persistence", () => {
     (globalThis.localStorage as Storage).setItem("evx.settings.v1", "{not json");
     const s = loadSettings();
     expect(s.facility).toBe("");
+  });
+
+  it("clearSettings removes the stored value", () => {
+    saveSettings({
+      facility: "FAC-77",
+      agencyOib: "",
+      defaultArrivalOrg: "",
+      defaultCheckInTime: "15:00",
+      defaultCheckOutTime: "10:00",
+    });
+    clearSettings();
+    expect(loadSettings().facility).toBe("");
+  });
+});
+
+describe("mode persistence", () => {
+  it("starts unset", () => {
+    expect(loadMode()).toBeNull();
+  });
+
+  it("saves and loads guest mode", () => {
+    saveMode("guest");
+    expect(loadMode()).toBe("guest");
+  });
+
+  it("saves and loads host mode", () => {
+    saveMode("host");
+    expect(loadMode()).toBe("host");
+  });
+
+  it("clearMode forgets the role", () => {
+    saveMode("host");
+    clearMode();
+    expect(loadMode()).toBeNull();
+  });
+
+  it("returns null when a junk value is stored", () => {
+    (globalThis.localStorage as Storage).setItem("evx.mode.v1", "tourist");
+    expect(loadMode()).toBeNull();
   });
 });
 

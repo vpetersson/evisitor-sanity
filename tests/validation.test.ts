@@ -35,7 +35,7 @@ function tourist(overrides: Partial<Tourist> = {}): Tourist {
   };
 }
 
-describe("validateTourist", () => {
+describe("validateTourist (host mode, the default)", () => {
   it("accepts a complete tourist", () => {
     const v = validateTourist(tourist());
     expect(v.ok).toBe(true);
@@ -49,6 +49,16 @@ describe("validateTourist", () => {
     expect(fields).toContain("facility");
     expect(fields).toContain("gender");
     expect(v.ok).toBe(false);
+  });
+
+  it("requires host-only fields like facility and ttPaymentCategory", () => {
+    const v = validateTourist(
+      tourist({ facility: "", ttPaymentCategory: "", arrivalOrganisation: "" }),
+    );
+    const fields = v.errors.map((e) => e.field);
+    expect(fields).toContain("facility");
+    expect(fields).toContain("ttPaymentCategory");
+    expect(fields).toContain("arrivalOrganisation");
   });
 
   it("rejects unknown ISO country codes", () => {
@@ -84,5 +94,50 @@ describe("validateTourist", () => {
   it("rejects an unknown document type", () => {
     const v = validateTourist(tourist({ documentType: "GoldenTicket" }));
     expect(v.errors.some((e) => e.field === "documentType")).toBe(true);
+  });
+});
+
+describe("validateTourist (guest mode)", () => {
+  it("accepts a guest with personal details but no host info", () => {
+    const v = validateTourist(
+      tourist({ facility: "", ttPaymentCategory: "", arrivalOrganisation: "" }),
+      "guest",
+    );
+    expect(v.ok).toBe(true);
+  });
+
+  it("still requires identity fields", () => {
+    const v = validateTourist(
+      tourist({
+        touristName: "",
+        touristSurname: "",
+        documentNumber: "",
+        facility: "",
+        ttPaymentCategory: "",
+        arrivalOrganisation: "",
+      }),
+      "guest",
+    );
+    const fields = v.errors.map((e) => e.field);
+    expect(fields).toContain("touristName");
+    expect(fields).toContain("touristSurname");
+    expect(fields).toContain("documentNumber");
+    expect(fields).not.toContain("facility");
+    expect(fields).not.toContain("ttPaymentCategory");
+    expect(fields).not.toContain("arrivalOrganisation");
+  });
+
+  it("still rejects stays where check-out is before check-in", () => {
+    const v = validateTourist(
+      tourist({
+        stayFrom: "2026-06-07",
+        foreseenStayUntil: "2026-06-01",
+        facility: "",
+        ttPaymentCategory: "",
+        arrivalOrganisation: "",
+      }),
+      "guest",
+    );
+    expect(v.errors.some((e) => e.field === "foreseenStayUntil")).toBe(true);
   });
 });

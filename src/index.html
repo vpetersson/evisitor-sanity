@@ -3,8 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>evisitor sanity — quietly register your guests</title>
-    <meta name="description" content="A calm, simple way to register your overnight guests for eVisitor. Fill in a form, save the file, upload it on eVisitor. Everything stays in your browser." />
+    <title>evisitor sanity — quietly register your stay</title>
+    <meta name="description" content="A calm, simple way to handle eVisitor (Croatia) check-ins. Guests fill in their details; hosts add the rest and upload to eVisitor. Everything stays in your browser." />
     <meta name="theme-color" content="#f6f1e7" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#15140f" media="(prefers-color-scheme: dark)" />
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
@@ -23,130 +23,303 @@
           <span>evisitor <em>sanity</em></span>
         </a>
         <nav class="site-nav">
-          <a class="btn btn-ghost" href="https://github.com/vpetersson/evisitor-sanity" target="_blank" rel="noopener">GitHub<span aria-hidden="true"> ↗</span></a>
+          <div id="mode-toggle" class="mode-toggle" hidden role="group" aria-label="Switch role">
+            <button type="button" data-mode="guest" class="mode-toggle-btn">I'm a guest</button>
+            <button type="button" data-mode="host" class="mode-toggle-btn">I'm a host</button>
+          </div>
+          <a class="btn btn-ghost btn-small" href="https://github.com/vpetersson/evisitor-sanity" target="_blank" rel="noopener">GitHub<span aria-hidden="true"> ↗</span></a>
         </nav>
       </div>
     </header>
 
     <main id="top" class="container main-stack">
 
-      <!-- ──────────────── Hero ──────────────── -->
-      <section class="hero">
-        <h1 class="hero-title">
-          Register your guests for eVisitor<br />
-          <span class="hero-italic">without losing your afternoon.</span>
-        </h1>
+      <!-- ─────────── Mode chooser (only on first visit) ─────────── -->
+      <section id="mode-chooser" class="mode-chooser" hidden>
+        <h1 class="hero-title">A calmer way through<br /><span class="hero-italic">eVisitor.</span></h1>
         <p class="hero-lede">
-          Fill in a simple form for each guest. When you're done, save the file to your
-          computer and upload it on eVisitor under
-          <strong>Turisti → Prijava putem datoteke</strong>. Everything stays in your
-          browser — nothing is sent to us or anywhere else.
+          Pick your role to get the right form. You can switch at any time — your role is remembered on this device.
         </p>
-
-        <ol class="hero-steps">
-          <li>
-            <span class="step-dot">1</span>
-            <span class="step-text">
-              <strong>Your property</strong>
-              <span>Tell us your eVisitor facility code once. We'll remember it on this device.</span>
+        <div class="role-tiles">
+          <button type="button" class="role-tile" data-pick-mode="guest">
+            <span class="role-icon" aria-hidden="true">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="1.6"/>
+                <path d="M4 20c1.5-3.5 4.5-5 8-5s6.5 1.5 8 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+              </svg>
             </span>
-          </li>
-          <li>
-            <span class="step-dot">2</span>
-            <span class="step-text">
-              <strong>Your guests</strong>
-              <span>Add a quick row for each overnight visitor — name, passport, dates.</span>
-            </span>
-          </li>
-          <li>
-            <span class="step-dot">3</span>
-            <span class="step-text">
-              <strong>Save and upload</strong>
-              <span>Save the file, log into eVisitor, upload it. That's the whole job.</span>
-            </span>
-          </li>
-        </ol>
-      </section>
-
-      <!-- ──────────────── Step 1: property ──────────────── -->
-      <section class="step-card" id="property">
-        <header class="step-header">
-          <span class="step-eyebrow">Step 1</span>
-          <h2>Your property</h2>
-          <p class="step-sub">Saved in your browser. Nothing is sent. You only need to do this once.</p>
-        </header>
-        <div id="settings-fields" class="form-grid"></div>
-        <p id="settings-status" class="reassurance">Stays in your browser. Nothing is sent.</p>
-      </section>
-
-      <!-- ──────────────── Step 2: guests ──────────────── -->
-      <section class="step-card" id="guests">
-        <header class="step-header">
-          <span class="step-eyebrow">Step 2</span>
-          <h2>Your guests</h2>
-          <p class="step-sub">Add one entry per overnight guest. Children count as guests too.</p>
-        </header>
-
-        <div id="tourist-list" class="guest-list"></div>
-
-        <div class="guest-actions">
-          <button id="btn-add" class="btn btn-secondary">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-            </svg>
-            Add a guest
+            <span class="role-title">I'm a guest</span>
+            <span class="role-sub">Fill in your details and send a file to your host. Takes a couple of minutes.</span>
           </button>
-          <button id="btn-duplicate" class="btn btn-ghost">Copy last guest</button>
-          <button id="btn-sample" class="btn btn-ghost">Try with example data</button>
-          <button id="btn-reset" class="btn btn-danger">Clear all guests</button>
+          <button type="button" class="role-tile" data-pick-mode="host">
+            <span class="role-icon" aria-hidden="true">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+                <path d="M4 21V10l8-6 8 6v11" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+                <path d="M9 21v-7h6v7" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+              </svg>
+            </span>
+            <span class="role-title">I'm a host</span>
+            <span class="role-sub">Receive guest files, add your property and tax details, and save the file for eVisitor.</span>
+          </button>
         </div>
-
-        <p id="guest-summary-row" class="summary-row" aria-live="polite"></p>
+        <p class="reassurance">Everything stays in your browser. Nothing is sent to any server.</p>
       </section>
 
-      <!-- ──────────────── Step 3: download ──────────────── -->
-      <section class="step-card step-download" id="download">
-        <header class="step-header">
-          <span class="step-eyebrow">Step 3</span>
-          <h2>Save and upload</h2>
-          <p class="step-sub">
-            Click the button below. Your computer will save a file. Then log into
-            <a href="https://www.evisitor.hr/" target="_blank" rel="noopener">eVisitor</a>,
-            open <strong>Turisti</strong>, choose <strong>Prijava putem datoteke</strong>,
-            and upload it.
+      <!-- ─────────── GUEST FLOW ─────────── -->
+      <section id="guest-flow" hidden>
+        <section class="hero">
+          <h1 class="hero-title">
+            Help your host register you<br />
+            <span class="hero-italic">for eVisitor.</span>
+          </h1>
+          <p class="hero-lede">
+            Croatian hosts must report every overnight guest to eVisitor. To save your host time, fill in your details
+            once below and send the resulting file to them. They'll add the property and tax bits and upload it.
+            Nothing is ever sent through this page — when you close the tab, the form clears.
           </p>
+
+          <ol class="hero-steps">
+            <li>
+              <span class="step-dot">1</span>
+              <span class="step-text">
+                <strong>Fill in your details</strong>
+                <span>Name, document, dates — the same things you give at any hotel.</span>
+              </span>
+            </li>
+            <li>
+              <span class="step-dot">2</span>
+              <span class="step-text">
+                <strong>Save the file</strong>
+                <span>One small file lands on your device.</span>
+              </span>
+            </li>
+            <li>
+              <span class="step-dot">3</span>
+              <span class="step-text">
+                <strong>Send it to your host</strong>
+                <span>By email, WhatsApp, anything. They'll do the rest.</span>
+              </span>
+            </li>
+          </ol>
+        </section>
+
+        <section class="step-card">
+          <header class="step-header">
+            <span class="step-eyebrow">Step 1</span>
+            <h2>Your details</h2>
+            <p class="step-sub">For a family or group, add a row per person. The host needs each guest separately.</p>
+          </header>
+
+          <div id="guest-tourist-list" class="guest-list"></div>
+
+          <div class="guest-actions">
+            <button id="btn-add-guest" class="btn btn-secondary" type="button">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+              </svg>
+              Add another person
+            </button>
+            <button id="btn-duplicate-guest" class="btn btn-ghost" type="button">Copy last person</button>
+            <button id="btn-reset-guest" class="btn btn-danger" type="button">Clear all</button>
+          </div>
+
+          <p id="guest-summary-row" class="summary-row" aria-live="polite"></p>
+        </section>
+
+        <section class="step-card step-download">
+          <header class="step-header">
+            <span class="step-eyebrow">Step 2</span>
+            <h2>Save the file</h2>
+            <p class="step-sub">Click below to save the file to your device, then send it to your host. The file contains only what you typed above.</p>
+          </header>
+
+          <button id="btn-guest-download" class="btn btn-primary btn-big" type="button">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M12 4v12m0 0l-4-4m4 4l4-4M5 20h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Save the file
+          </button>
+          <p id="guest-download-status" class="reassurance"></p>
+
+          <details class="file-preview">
+            <summary>Show what's in the file <span class="chev" aria-hidden="true">›</span></summary>
+            <pre id="guest-xml-preview" class="xml-pre" aria-live="polite"></pre>
+          </details>
+        </section>
+      </section>
+
+      <!-- ─────────── HOST FLOW ─────────── -->
+      <section id="host-flow" hidden>
+        <section class="hero">
+          <h1 class="hero-title">
+            Register your guests for eVisitor<br />
+            <span class="hero-italic">without losing your afternoon.</span>
+          </h1>
+          <p class="hero-lede">
+            Add your property once, drop in each guest's file (or type them in by hand), then save one file and
+            upload it on eVisitor under <strong>Turisti → Prijava putem datoteke</strong>. Everything stays in your
+            browser.
+          </p>
+
+          <ol class="hero-steps">
+            <li>
+              <span class="step-dot">1</span>
+              <span class="step-text">
+                <strong>Your property</strong>
+                <span>Tell us your facility code once — saved on this device.</span>
+              </span>
+            </li>
+            <li>
+              <span class="step-dot">2</span>
+              <span class="step-text">
+                <strong>Add your guests</strong>
+                <span>Import the file each guest sent you, or add them by hand.</span>
+              </span>
+            </li>
+            <li>
+              <span class="step-dot">3</span>
+              <span class="step-text">
+                <strong>Save and upload</strong>
+                <span>One file, one upload on eVisitor. Done.</span>
+              </span>
+            </li>
+          </ol>
+        </section>
+
+        <section class="step-card" id="property">
+          <header class="step-header">
+            <span class="step-eyebrow">Step 1</span>
+            <h2>Your property</h2>
+            <p class="step-sub">Saved in your browser. Nothing is sent. You only need to do this once.</p>
+          </header>
+          <div id="settings-fields" class="form-grid"></div>
+          <p id="settings-status" class="reassurance">Stays in your browser. Nothing is sent.</p>
+        </section>
+
+        <section class="step-card" id="guests">
+          <header class="step-header">
+            <span class="step-eyebrow">Step 2</span>
+            <h2>Your guests</h2>
+            <p class="step-sub">
+              The easiest way: have each guest fill in their details (using this page in guest mode) and send you
+              the file. Then click <strong>Import a guest file</strong> below. Or add them by hand.
+            </p>
+          </header>
+
+          <div class="import-row">
+            <label class="btn btn-secondary import-btn" for="import-input">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M12 20V8m0 0l-4 4m4-4l4 4M5 4h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              Import a guest file
+              <input id="import-input" type="file" accept=".xml,application/xml,text/xml" hidden />
+            </label>
+            <button id="btn-add" class="btn btn-ghost" type="button">＋ Add by hand</button>
+            <button id="btn-sample" class="btn btn-ghost" type="button">Try with example data</button>
+          </div>
+          <p id="import-status" class="reassurance" aria-live="polite"></p>
+
+          <div id="tourist-list" class="guest-list"></div>
+
+          <div class="guest-actions">
+            <button id="btn-duplicate" class="btn btn-ghost" type="button">Copy last guest</button>
+            <button id="btn-reset" class="btn btn-danger" type="button">Clear all guests</button>
+          </div>
+
+          <p id="host-summary-row" class="summary-row" aria-live="polite"></p>
+        </section>
+
+        <section class="step-card step-download">
+          <header class="step-header">
+            <span class="step-eyebrow">Step 3</span>
+            <h2>Save and upload</h2>
+            <p class="step-sub">
+              Click below. Your computer will save a file. Then log into
+              <a href="https://www.evisitor.hr/" target="_blank" rel="noopener">eVisitor</a>,
+              open <strong>Turisti</strong>, choose <strong>Prijava putem datoteke</strong>,
+              and upload it.
+            </p>
+          </header>
+
+          <button id="btn-download" class="btn btn-primary btn-big" type="button">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M12 4v12m0 0l-4-4m4 4l4-4M5 20h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Save the file
+          </button>
+          <p id="download-status" class="reassurance"></p>
+
+          <details class="file-preview">
+            <summary>Show what's in the file <span class="chev" aria-hidden="true">›</span></summary>
+            <pre id="xml-preview" class="xml-pre" aria-live="polite"></pre>
+          </details>
+        </section>
+      </section>
+
+      <!-- ─────────── PRIVACY (always visible) ─────────── -->
+      <section id="privacy" class="privacy">
+        <header class="privacy-header">
+          <span class="step-eyebrow">Privacy</span>
+          <h2>What happens to your data</h2>
         </header>
 
-        <button id="btn-download" class="btn btn-primary btn-big">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M12 4v12m0 0l-4-4m4 4l4-4M5 20h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          Save the file
-        </button>
-        <p id="download-status" class="reassurance"></p>
+        <div class="privacy-grid">
+          <article>
+            <h3>While you use this page</h3>
+            <ul class="privacy-list">
+              <li><strong>Nothing leaves your browser.</strong> No data is sent to a server, ever. There is no backend.</li>
+              <li><strong>No cookies, no tracking, no analytics.</strong> No third-party scripts run on this page.</li>
+              <li><strong>It gets zapped when you close the tab.</strong> The only data we remember between visits is, if you're a host, your property defaults — so you don't have to retype them. You can clear them at any time with the button below.</li>
+              <li><strong>The file is yours.</strong> When you save the file, it goes only to your device. Nobody else sees it unless you choose to share it.</li>
+            </ul>
+            <button id="btn-clear-storage" class="btn btn-danger" type="button" style="margin-top: 14px;">
+              Forget my saved details
+            </button>
+          </article>
 
-        <details class="file-preview">
-          <summary>Show what's in the file <span class="chev" aria-hidden="true">›</span></summary>
-          <pre id="xml-preview" class="xml-pre" aria-live="polite"></pre>
-        </details>
+          <article>
+            <h3>What eVisitor collects, once uploaded</h3>
+            <p class="privacy-paragraph">
+              eVisitor is run by the Croatian National Tourist Board. Every accommodation provider is required by
+              law (Zakon o boravišnoj pristojbi; Zakon o pružanju usluga u turizmu) to register every overnight
+              guest. For each guest, eVisitor records:
+            </p>
+            <ul class="privacy-list">
+              <li>Full name and sex</li>
+              <li>Date and place of birth (country and city)</li>
+              <li>Citizenship</li>
+              <li>Address of residence (country, city, street)</li>
+              <li>Travel document type and number</li>
+              <li>Date and time of arrival and (foreseen) departure</li>
+              <li>Tourist tax category that applies</li>
+              <li>How the guest arrived (organised, individual, etc.)</li>
+            </ul>
+            <p class="privacy-paragraph">
+              That data is shared with the Ministry of the Interior (MUP) for border-tracking purposes and with the
+              local tourist board for tourist-tax accounting. For the official details, see
+              <a href="https://www.evisitor.hr/" target="_blank" rel="noopener">evisitor.hr</a> and the
+              <a href="https://www.evisitor.hr/eVisitorWiki/Javno.Web-API.ashx" target="_blank" rel="noopener">eVisitor wiki</a>.
+            </p>
+          </article>
+        </div>
       </section>
     </main>
 
     <footer class="site-footer">
       <div class="container site-footer-row">
         <p>
-          Unofficial. Not affiliated with eVisitor or the Croatian Tourist Board.
+          Unofficial. Not affiliated with eVisitor, the Croatian National Tourist Board, or any government body.
           If something doesn't work, <a href="https://github.com/vpetersson/evisitor-sanity/issues" target="_blank" rel="noopener">let us know on GitHub</a>.
         </p>
         <p class="footer-by">Made with quiet rage<br />by <a href="https://github.com/vpetersson" target="_blank" rel="noopener">@vpetersson</a></p>
       </div>
     </footer>
 
-    <!-- Sticky CTA so the primary action is always one tap away -->
-    <div class="sticky-cta">
+    <!-- Sticky CTA — only shown in modes with a download action -->
+    <div id="sticky-cta" class="sticky-cta" hidden>
       <div class="container sticky-cta-row">
         <span id="sticky-status" class="sticky-status"></span>
-        <button id="btn-download-sticky" class="btn btn-primary">
+        <button id="btn-download-sticky" class="btn btn-primary" type="button">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path d="M12 4v12m0 0l-4-4m4 4l4-4M5 20h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>

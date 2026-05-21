@@ -1,6 +1,23 @@
-import type { AppState, Settings, Tourist } from "./types.ts";
+import type { AppState, Mode, Settings, Tourist } from "./types.ts";
 
 const SETTINGS_KEY = "evx.settings.v1";
+const MODE_KEY = "evx.mode.v1";
+
+export function loadMode(): Mode | null {
+  if (typeof localStorage === "undefined") return null;
+  const raw = localStorage.getItem(MODE_KEY);
+  return raw === "guest" || raw === "host" ? raw : null;
+}
+
+export function saveMode(mode: Mode): void {
+  if (typeof localStorage === "undefined") return;
+  localStorage.setItem(MODE_KEY, mode);
+}
+
+export function clearMode(): void {
+  if (typeof localStorage === "undefined") return;
+  localStorage.removeItem(MODE_KEY);
+}
 
 const DEFAULT_SETTINGS: Settings = {
   facility: "",
@@ -107,5 +124,9 @@ export function sampleTourist(settings: Settings): Tourist {
 
 export function createInitialState(): AppState {
   const settings = loadSettings();
-  return { settings, tourists: [blankTourist(settings)] };
+  return {
+    mode: loadMode(),
+    settings,
+    tourists: [blankTourist(settings)],
+  };
 }

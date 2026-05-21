@@ -1,5 +1,7 @@
 export type Gender = "M" | "F";
 
+export type Mode = "guest" | "host";
+
 export interface Settings {
   facility: string;
   agencyOib: string;
@@ -39,6 +41,7 @@ export interface Tourist {
 }
 
 export interface AppState {
+  mode: Mode | null;
   settings: Settings;
   tourists: Tourist[];
 }
