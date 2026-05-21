@@ -16,6 +16,14 @@ import type { AppState, Mode, Settings, Tourist } from "./types.ts";
 
 const state: AppState = createInitialState();
 
+// A ?role=guest (or ?role=host) URL parameter lets a host send a single link
+// to their guest that lands directly in the guest form.
+const roleFromUrl = new URLSearchParams(window.location.search).get("role");
+if (roleFromUrl === "guest" || roleFromUrl === "host") {
+  state.mode = roleFromUrl;
+  saveMode(roleFromUrl);
+}
+
 const handlers = {
   onSettingsChange(patch: Partial<Settings>) {
     state.settings = { ...state.settings, ...patch };
@@ -244,6 +252,29 @@ function wireGlobalActions(): void {
   document.getElementById("btn-download")?.addEventListener("click", downloadFile);
   document.getElementById("btn-guest-download")?.addEventListener("click", downloadFile);
   document.getElementById("btn-download-sticky")?.addEventListener("click", downloadFile);
+
+  // Host: share guest form link
+  document.getElementById("btn-share-guest-link")?.addEventListener("click", async () => {
+    const url = new URL(window.location.href);
+    url.searchParams.set("role", "guest");
+    url.hash = "";
+    const link = url.toString();
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: "Croatian check-in form",
+          text: "Please fill in your check-in details for our stay and send the file back to me:",
+          url: link,
+        });
+      } else {
+        await navigator.clipboard.writeText(link);
+        flashImportStatus("Link copied. Send it to your guests.", "ok");
+      }
+    } catch {
+      // user cancelled the native share sheet, or clipboard refused
+      flashImportStatus(`Copy this link: ${link}`, "ok");
+    }
+  });
 
   // Privacy: clear stored property defaults + role
   document.getElementById("btn-clear-storage")?.addEventListener("click", () => {

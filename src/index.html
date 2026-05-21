@@ -3,8 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>evisitor sanity — the secure way to handle Croatian guest registration</title>
-    <meta name="description" content="The easiest, most private way to handle Croatian guest registration (eVisitor). Guests fill in their details and send a file; hosts collect files and upload to eVisitor. Nothing leaves your browser." />
+    <title>Check-in for Croatia — share your stay details securely</title>
+    <meta name="description" content="The secure way to share your overnight stay details in Croatia. Guests fill in their info once and send a file; hosts collect the files and register them with the authorities. Nothing leaves your browser." />
     <meta name="theme-color" content="#f6f1e7" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#15140f" media="(prefers-color-scheme: dark)" />
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
@@ -14,20 +14,25 @@
     <!-- ──────────────────────── Top bar ──────────────────────── -->
     <header class="site-header">
       <div class="container site-header-row">
-        <a class="brand" href="#top" aria-label="evisitor sanity home">
+        <a class="brand" href="#top" aria-label="Check-in for Croatia, home">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path d="M2 18c3-2 6-2 10 0s7 2 10 0" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
             <path d="M2 13c3-2 6-2 10 0s7 2 10 0" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" opacity="0.55" />
             <path d="M2 8c3-2 6-2 10 0s7 2 10 0" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" opacity="0.3" />
           </svg>
-          <span>evisitor <em>sanity</em></span>
+          <span>Check-in for <em>Croatia</em></span>
         </a>
         <nav class="site-nav">
           <div id="mode-toggle" class="mode-toggle" hidden role="group" aria-label="Switch role">
-            <button type="button" data-mode="guest" class="mode-toggle-btn">I'm a guest</button>
-            <button type="button" data-mode="host" class="mode-toggle-btn">I'm a host</button>
+            <button type="button" data-mode="guest" class="mode-toggle-btn">
+              <span class="mode-toggle-long">I'm a guest</span>
+              <span class="mode-toggle-short" aria-hidden="true">Guest</span>
+            </button>
+            <button type="button" data-mode="host" class="mode-toggle-btn">
+              <span class="mode-toggle-long">I'm a host</span>
+              <span class="mode-toggle-short" aria-hidden="true">Host</span>
+            </button>
           </div>
-          <a class="btn btn-ghost btn-small" href="https://github.com/vpetersson/evisitor-sanity" target="_blank" rel="noopener">GitHub<span aria-hidden="true"> ↗</span></a>
         </nav>
       </div>
     </header>
@@ -218,6 +223,12 @@
               Import a guest file
               <input id="import-input" type="file" accept=".xml,application/xml,text/xml" hidden />
             </label>
+            <button id="btn-share-guest-link" class="btn btn-ghost" type="button">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M10 14a3.5 3.5 0 005 0l3-3a3.5 3.5 0 00-5-5l-1 1m-3 9l-3 3a3.5 3.5 0 11-5-5l3-3a3.5 3.5 0 015 0" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              Share guest form with my guests
+            </button>
             <button id="btn-add" class="btn btn-ghost" type="button">＋ Add by hand</button>
             <button id="btn-sample" class="btn btn-ghost" type="button">Try with example data</button>
           </div>
@@ -314,9 +325,8 @@
       <div class="container site-footer-row">
         <p>
           Unofficial. Not affiliated with eVisitor, the Croatian National Tourist Board, or any government body.
-          If something doesn't work, <a href="https://github.com/vpetersson/evisitor-sanity/issues" target="_blank" rel="noopener">let us know on GitHub</a>.
+          If something doesn't work, <a href="https://github.com/vpetersson/evisitor-sanity/issues" target="_blank" rel="noopener">report it on GitHub</a>.
         </p>
-        <p class="footer-by">Made with quiet rage<br />by <a href="https://github.com/vpetersson" target="_blank" rel="noopener">@vpetersson</a></p>
       </div>
     </footer>
 

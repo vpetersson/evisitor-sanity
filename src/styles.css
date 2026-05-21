@@ -140,7 +140,11 @@ button { font: inherit; cursor: pointer; }
   z-index: 10;
   backdrop-filter: blur(8px);
 }
-.site-header-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.site-header-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+@media (max-width: 420px) {
+  .brand { font-size: 16px; }
+  .brand svg { width: 18px; height: 18px; }
+}
 .brand {
   display: inline-flex; align-items: center; gap: 10px;
   text-decoration: none; color: var(--color-ink);
@@ -292,16 +296,17 @@ button { font: inherit; cursor: pointer; }
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  width: 28px;
+  height: 28px;
   border-radius: 999px;
   border: 1px solid var(--color-rule);
   background: var(--color-paper);
   color: var(--color-ink-3);
   font-family: var(--font-display);
-  font-size: 13px;
+  font-size: 15px;
   line-height: 1;
   font-weight: 500;
+  flex: none;
   transition: background-color 150ms var(--ease-out-soft),
               color 150ms var(--ease-out-soft),
               border-color 150ms var(--ease-out-soft);
@@ -371,12 +376,12 @@ button { font: inherit; cursor: pointer; }
 .gender-pill {
   border: 0;
   background: transparent;
-  padding: 8px 18px;
+  padding: 10px 22px;
   border-radius: 6px;
-  font-size: 14px;
+  font-size: 14.5px;
   font-weight: 500;
   color: var(--color-ink-3);
-  min-height: 36px;
+  min-height: 40px;
 }
 .gender-pill[aria-pressed="true"] {
   background: var(--color-adriatic);
@@ -609,6 +614,16 @@ details[open] > summary .chev { transform: rotate(90deg); }
   color: var(--color-ink-3);
 }
 
+/* ── Focus rings (keyboard accessibility) ─────────────────────── */
+.btn:focus-visible,
+.help-btn:focus-visible,
+.gender-pill:focus-visible,
+.mode-toggle-btn:focus-visible,
+.role-tile:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--color-adriatic) 45%, transparent);
+  outline-offset: 2px;
+}
+
 /* ── Sticky bottom CTA ─────────────────────────────────────────── */
 .sticky-cta {
   position: fixed;
@@ -621,6 +636,21 @@ details[open] > summary .chev { transform: rotate(90deg); }
   border-top: 1px solid var(--color-rule);
   padding: 12px 0;
   padding-bottom: max(12px, env(safe-area-inset-bottom));
+  transition: transform 220ms var(--ease-out-soft);
+}
+
+/* Hide the sticky CTA while the user is typing — prevents mobile
+   keyboards from making the page feel cramped. */
+@supports selector(:has(*)) {
+  body:has(
+    .guest-card input:focus,
+    .guest-card select:focus,
+    #settings-fields input:focus,
+    #settings-fields select:focus
+  ) .sticky-cta {
+    transform: translateY(120%);
+    pointer-events: none;
+  }
 }
 .sticky-cta-row {
   display: flex;
@@ -721,7 +751,11 @@ details[open] > summary .chev { transform: rotate(90deg); }
   color: var(--color-paper);
 }
 @media (max-width: 520px) {
-  .mode-toggle-btn { padding: 6px 9px; font-size: 12px; }
+  .mode-toggle-btn { padding: 6px 10px; font-size: 12px; }
+  .mode-toggle-btn .mode-toggle-long { display: none; }
+}
+@media (min-width: 521px) {
+  .mode-toggle-btn .mode-toggle-short { display: none; }
 }
 
 /* ── Import row ───────────────────────────────────────────────── */
