@@ -2,6 +2,10 @@ import type { AppState, Mode, Settings, Tourist } from "./types.ts";
 
 const SETTINGS_KEY = "evx.settings.v1";
 const MODE_KEY = "evx.mode.v1";
+// Guests' personal details live in sessionStorage, NOT localStorage: this
+// survives an accidental reload (the original pain point) yet still honours the
+// privacy promise that closing the tab wipes everything.
+const TOURISTS_KEY = "evx.tourists.v1";
 
 export function loadMode(): Mode | null {
   if (typeof localStorage === "undefined") return null;
@@ -123,11 +127,46 @@ export function sampleTourist(settings: Settings): Tourist {
   };
 }
 
+export function loadTourists(settings: Settings): Tourist[] {
+  if (typeof sessionStorage === "undefined") return [blankTourist(settings)];
+  try {
+    const raw = sessionStorage.getItem(TOURISTS_KEY);
+    if (!raw) return [blankTourist(settings)];
+    const parsed = JSON.parse(raw) as Partial<Tourist>[];
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      return [blankTourist(settings)];
+    }
+    // Merge over a fresh blank so older saved shapes pick up any new fields,
+    // and guarantee every row keeps a stable id.
+    return parsed.map((t) => {
+      const base = blankTourist(settings);
+      return { ...base, ...t, id: t.id ?? base.id };
+    });
+  } catch {
+    return [blankTourist(settings)];
+  }
+}
+
+export function saveTourists(tourists: readonly Tourist[]): void {
+  if (typeof sessionStorage === "undefined") return;
+  try {
+    sessionStorage.setItem(TOURISTS_KEY, JSON.stringify(tourists));
+  } catch {
+    /* quota or privacy mode — entering still works, just isn't reload-safe */
+  }
+}
+
+export function clearTourists(): void {
+  if (typeof sessionStorage === "undefined") return;
+  sessionStorage.removeItem(TOURISTS_KEY);
+}
+
 export function createInitialState(): AppState {
   const settings = loadSettings();
   return {
     mode: loadMode(),
     settings,
-    tourists: [blankTourist(settings)],
+    tourists: loadTourists(settings),
+    ui: { touched: new Set<string>(), submitAttempted: false },
   };
 }
