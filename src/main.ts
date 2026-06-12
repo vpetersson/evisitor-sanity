@@ -2,13 +2,15 @@ import {
   blankTourist,
   clearMode,
   clearSettings,
+  clearTourists,
   createInitialState,
   loadSettings,
   saveMode,
   saveSettings,
+  saveTourists,
   sampleTourist,
 } from "./state.ts";
-import { renderForMode } from "./render.ts";
+import { refreshTourist, renderForMode } from "./render.ts";
 import { serialiseImportTourists } from "./xml.ts";
 import { validateTourist } from "./validation.ts";
 import { ImportError, parseTouristsXml } from "./parser.ts";
@@ -22,6 +24,13 @@ const roleFromUrl = new URLSearchParams(window.location.search).get("role");
 if (roleFromUrl === "guest" || roleFromUrl === "host") {
   state.mode = roleFromUrl;
   saveMode(roleFromUrl);
+}
+
+// Set once the guest/host has typed something worth keeping, cleared after a
+// successful save. Drives the close-tab warning.
+let dirty = false;
+function markDirty(): void {
+  dirty = true;
 }
 
 const handlers = {
@@ -39,17 +48,28 @@ const handlers = {
       for (const t of state.tourists)
         if (!t.touristAgency) t.touristAgency = patch.agencyOib;
     }
+    saveTourists(state.tourists);
+    // A full render is fine here: focus lives in a settings input, which
+    // renderSettings preserves; only the (unfocused) guest cards rebuild.
     render();
   },
   onTouristChange(id: string, patch: Partial<Tourist>) {
     const idx = state.tourists.findIndex((t) => t.id === id);
     if (idx < 0) return;
     state.tourists[idx] = { ...state.tourists[idx]!, ...patch };
-    render();
+    markDirty();
+    saveTourists(state.tourists);
+    // In-place refresh ONLY — never rebuild the card the user is typing into.
+    refreshTourist(state, id);
+  },
+  onTouristBlur(id: string, field: keyof Tourist) {
+    state.ui.touched.add(`${id}::${String(field)}`);
+    refreshTourist(state, id);
   },
   onRemoveTourist(id: string) {
     state.tourists = state.tourists.filter((t) => t.id !== id);
     if (state.tourists.length === 0) state.tourists.push(blankTourist(state.settings));
+    saveTourists(state.tourists);
     render();
   },
 };
@@ -66,9 +86,17 @@ function currentMode(): Mode {
 
 function downloadFile(): void {
   const mode = currentMode();
-  for (const t of state.tourists) {
-    if (!validateTourist(t, mode).ok) return;
+  const hasErrors = state.tourists.some((t) => !validateTourist(t, mode).ok);
+  if (hasErrors) {
+    // Don't silently do nothing — reveal every error and walk the user to the
+    // first one. This replaces the old dead, disabled button.
+    state.ui.submitAttempted = true;
+    render();
+    focusFirstError();
+    flashStatus("Please fill in the highlighted fields, then save again.");
+    return;
   }
+
   const xml = serialiseImportTourists(state.tourists);
   const blob = new Blob([xml], { type: "application/xml" });
   const url = URL.createObjectURL(blob);
@@ -79,11 +107,25 @@ function downloadFile(): void {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+  dirty = false; // the work is safely on disk now
   flashStatus(
     mode === "guest"
       ? "Saved. Send the file to your host by email or any other way."
       : "Saved. Upload it on eVisitor under Turisti → Prijava putem datoteke.",
   );
+}
+
+function focusFirstError(): void {
+  const first = document.querySelector<HTMLElement>(
+    '.guest-card [aria-invalid="true"]',
+  );
+  if (!first) return;
+  first.scrollIntoView({ behavior: "smooth", block: "center" });
+  // The country/text inputs and the gender group are all focusable.
+  (first.matches("input, select")
+    ? first
+    : first.querySelector<HTMLElement>("button, input, select") ?? first
+  ).focus({ preventScroll: true });
 }
 
 function filenameForToday(mode: Mode): string {
@@ -167,6 +209,8 @@ function wireImport(): void {
       if (lastIsBlank) state.tourists = imported;
       else state.tourists.push(...imported);
 
+      markDirty();
+      saveTourists(state.tourists);
       flashImportStatus(
         `Imported ${imported.length} guest${imported.length === 1 ? "" : "s"} from ${file.name}.`,
         "ok",
@@ -199,53 +243,57 @@ function flashImportStatus(message: string, kind: "ok" | "error"): void {
 
 /* ─────────────────────────── Other actions ─────────────────────────── */
 
+function addTourist(t: Tourist, listSelector: string): void {
+  state.tourists.push(t);
+  markDirty();
+  saveTourists(state.tourists);
+  render();
+  scrollIntoLastGuest(listSelector);
+}
+
+function resetTourists(): void {
+  state.tourists = [blankTourist(state.settings)];
+  state.ui.touched.clear();
+  state.ui.submitAttempted = false;
+  dirty = false;
+  saveTourists(state.tourists);
+  render();
+}
+
+function duplicateLast(): Tourist {
+  const last = state.tourists.at(-1);
+  return last ? { ...last, id: crypto.randomUUID() } : blankTourist(state.settings);
+}
+
 function wireGlobalActions(): void {
   // Host: add by hand
   document.getElementById("btn-add")?.addEventListener("click", () => {
-    state.tourists.push(blankTourist(state.settings));
-    render();
-    scrollIntoLastGuest("#tourist-list");
+    addTourist(blankTourist(state.settings), "#tourist-list");
   });
   // Host: duplicate
   document.getElementById("btn-duplicate")?.addEventListener("click", () => {
-    const last = state.tourists.at(-1);
-    state.tourists.push(
-      last ? { ...last, id: crypto.randomUUID() } : blankTourist(state.settings),
-    );
-    render();
-    scrollIntoLastGuest("#tourist-list");
+    addTourist(duplicateLast(), "#tourist-list");
   });
   // Host: example data
   document.getElementById("btn-sample")?.addEventListener("click", () => {
-    state.tourists.push(sampleTourist(state.settings));
-    render();
-    scrollIntoLastGuest("#tourist-list");
+    addTourist(sampleTourist(state.settings), "#tourist-list");
   });
   // Host: clear guests
   document.getElementById("btn-reset")?.addEventListener("click", () => {
     if (!confirm("Clear all guests on this device? Your property details are kept.")) return;
-    state.tourists = [blankTourist(state.settings)];
-    render();
+    resetTourists();
   });
 
   // Guest: add another person
   document.getElementById("btn-add-guest")?.addEventListener("click", () => {
-    state.tourists.push(blankTourist(state.settings));
-    render();
-    scrollIntoLastGuest("#guest-tourist-list");
+    addTourist(blankTourist(state.settings), "#guest-tourist-list");
   });
   document.getElementById("btn-duplicate-guest")?.addEventListener("click", () => {
-    const last = state.tourists.at(-1);
-    state.tourists.push(
-      last ? { ...last, id: crypto.randomUUID() } : blankTourist(state.settings),
-    );
-    render();
-    scrollIntoLastGuest("#guest-tourist-list");
+    addTourist(duplicateLast(), "#guest-tourist-list");
   });
   document.getElementById("btn-reset-guest")?.addEventListener("click", () => {
     if (!confirm("Clear everyone you've entered?")) return;
-    state.tourists = [blankTourist(state.settings)];
-    render();
+    resetTourists();
   });
 
   // Downloads
@@ -281,9 +329,13 @@ function wireGlobalActions(): void {
     if (!confirm("Forget your property defaults and role on this device?")) return;
     clearSettings();
     clearMode();
+    clearTourists();
     state.mode = null;
     state.settings = loadSettings();
     state.tourists = [blankTourist(state.settings)];
+    state.ui.touched.clear();
+    state.ui.submitAttempted = false;
+    dirty = false;
     render();
     window.scrollTo({ top: 0, behavior: "smooth" });
   });
@@ -321,7 +373,22 @@ function scrollIntoLastGuest(selector: string): void {
   const list = document.querySelector(selector);
   if (!list) return;
   const last = list.lastElementChild as HTMLElement | null;
-  last?.scrollIntoView({ behavior: "smooth", block: "start" });
+  if (!last) return;
+  last.scrollIntoView({ behavior: "smooth", block: "start" });
+  // Move focus into the new card so keyboard and screen-reader users land in
+  // the right place instead of hunting for it.
+  const firstField = last.querySelector<HTMLElement>(".field-input, .field-select");
+  firstField?.focus({ preventScroll: true });
+}
+
+function wireUnloadGuard(): void {
+  window.addEventListener("beforeunload", (e) => {
+    // Entries survive a reload (sessionStorage), but closing the tab still wipes
+    // them by design — so warn before that happens if there's unsaved work.
+    if (!dirty) return;
+    e.preventDefault();
+    e.returnValue = "";
+  });
 }
 
 function boot(): void {
@@ -330,6 +397,7 @@ function boot(): void {
   wireSettingsDelegate();
   wireImport();
   wireHelpToggles();
+  wireUnloadGuard();
   render();
 }
 

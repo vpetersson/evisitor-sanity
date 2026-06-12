@@ -41,10 +41,18 @@ export interface Tourist {
   isTTFlatRatePaymentVacationHome: string;
 }
 
+export interface UiState {
+  /** Field keys (`${touristId}::${field}`) the user has visited/blurred. */
+  touched: Set<string>;
+  /** Set once the user tries to save with errors — reveals every error. */
+  submitAttempted: boolean;
+}
+
 export interface AppState {
   mode: Mode | null;
   settings: Settings;
   tourists: Tourist[];
+  ui: UiState;
 }
 
 export interface ValidationError {

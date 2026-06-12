@@ -2,17 +2,12 @@ import { COUNTRIES, countryName } from "./countries.ts";
 import { DOCUMENT_TYPES, PAYMENT_CATEGORIES } from "./document-types.ts";
 import { serialiseImportTourists, xmlEscape } from "./xml.ts";
 import { validateTourist } from "./validation.ts";
-import type {
-  AppState,
-  Mode,
-  Settings,
-  Tourist,
-  ValidationError,
-} from "./types.ts";
+import type { AppState, Mode, Settings, Tourist } from "./types.ts";
 
 type Handlers = {
   onSettingsChange: (patch: Partial<Settings>) => void;
   onTouristChange: (id: string, patch: Partial<Tourist>) => void;
+  onTouristBlur: (id: string, field: keyof Tourist) => void;
   onRemoveTourist: (id: string) => void;
 };
 
@@ -26,9 +21,34 @@ const SORTED_COUNTRIES = [...COUNTRIES].sort((a, b) =>
   a.name.localeCompare(b.name, "en"),
 );
 
+const CODE_BY_NAME = new Map(
+  COUNTRIES.map((c) => [c.name.trim().toLowerCase(), c.code]),
+);
+
+/**
+ * Country fields show the human name but store the ISO code. Map a typed name
+ * back to its code; keep unmatched text verbatim so validation can flag it.
+ */
+function resolveCountryCode(input: string): string {
+  const trimmed = input.trim();
+  if (!trimmed) return "";
+  return CODE_BY_NAME.get(trimmed.toLowerCase()) ?? trimmed;
+}
+
+/** Group digits as YYYY-MM-DD as the user types, ignoring stray characters. */
+function maskDate(raw: string): string {
+  const d = raw.replace(/\D/g, "").slice(0, 8);
+  let out = d.slice(0, 4);
+  if (d.length > 4) out += "-" + d.slice(4, 6);
+  if (d.length > 6) out += "-" + d.slice(6, 8);
+  return out;
+}
+
 /* ─────────────────────────── Top-level layout ─────────────────────────── */
 
 export function renderForMode(state: AppState, handlers: Handlers): void {
+  ensureCountryList();
+
   const chooser = document.getElementById("mode-chooser") as HTMLElement | null;
   const guestFlow = document.getElementById("guest-flow") as HTMLElement | null;
   const hostFlow = document.getElementById("host-flow") as HTMLElement | null;
@@ -66,6 +86,18 @@ export function renderForMode(state: AppState, handlers: Handlers): void {
     hostFlow.hidden = false;
     renderHostFlow(state, handlers);
   }
+}
+
+/** A shared <datalist> backs every country combobox; build it once. */
+function ensureCountryList(): void {
+  if (typeof document === "undefined") return;
+  if (document.getElementById("country-list")) return;
+  const dl = document.createElement("datalist");
+  dl.id = "country-list";
+  dl.innerHTML = SORTED_COUNTRIES.map(
+    (c) => `<option value="${escapeAttr(c.name)}"></option>`,
+  ).join("");
+  document.body.appendChild(dl);
 }
 
 /* ─────────────────────────── Settings (host only) ─────────────────────────── */
@@ -117,17 +149,33 @@ const SETTINGS_FIELDS: SettingsFieldDef[] = [
 function renderSettings(state: AppState): void {
   const root = document.getElementById("settings-fields");
   if (!root) return;
-  root.innerHTML = SETTINGS_FIELDS.map((f) => {
-    const id = `s-${f.key}`;
-    return fieldShell({
-      id,
-      label: f.label,
-      help: f.help,
-      control: `<input id="${id}" class="field-input" type="${f.type}" name="${f.key}"
-                        placeholder="${escapeAttr(f.placeholder ?? "")}"
-                        value="${escapeAttr(String(state.settings[f.key] ?? ""))}" />`,
-    });
-  }).join("");
+
+  // Build the settings inputs exactly once. Rebuilding their HTML on every
+  // state change would destroy whichever input the host is typing in (the same
+  // focus-loss bug that plagued the guest cards), so afterwards we only sync
+  // values into inputs that aren't currently focused.
+  if (!root.dataset["built"]) {
+    root.innerHTML = SETTINGS_FIELDS.map((f) => {
+      const id = `s-${f.key}`;
+      return fieldShell({
+        id,
+        label: f.label,
+        help: f.help,
+        control: `<input id="${id}" class="field-input" type="${f.type}" name="${f.key}"
+                          placeholder="${escapeAttr(f.placeholder ?? "")}"
+                          value="${escapeAttr(String(state.settings[f.key] ?? ""))}"
+                          aria-describedby="${id}-help" />`,
+      });
+    }).join("");
+    root.dataset["built"] = "1";
+  } else {
+    for (const f of SETTINGS_FIELDS) {
+      const inp = document.getElementById(`s-${f.key}`) as HTMLInputElement | null;
+      if (inp && inp !== document.activeElement) {
+        inp.value = String(state.settings[f.key] ?? "");
+      }
+    }
+  }
 
   const status = document.getElementById("settings-status");
   if (status) {
@@ -153,7 +201,7 @@ const IDENTITY_FIELDS: FieldDef[] = [
   { key: "touristName", label: "First name", type: "text", required: true, help: "The guest's given name, exactly as written on their passport or ID." },
   { key: "touristSurname", label: "Last name", type: "text", required: true, help: "The guest's family name, exactly as written on their passport or ID." },
   { key: "touristMiddleName", label: "Middle name (optional)", type: "text", help: "Only include if the guest has a middle name on their travel document." },
-  { key: "dateOfBirth", label: "Date of birth", type: "date", required: true, help: "The guest's date of birth, as printed on their passport or ID." },
+  { key: "dateOfBirth", label: "Date of birth", type: "date", required: true, help: "The guest's date of birth, as printed on their passport or ID. Type it as year-month-day, e.g. 1985-04-15." },
   { key: "citizenship", label: "Citizenship", type: "text", required: true, control: "country", help: "The country that issued the guest's passport or ID — the country of citizenship, which may differ from where they live." },
   { key: "countryOfBirth", label: "Country of birth", type: "text", required: true, control: "country", help: "The country where the guest was born, as listed on their travel document." },
   { key: "cityOfBirth", label: "City of birth", type: "text", required: true, help: "The town or city where the guest was born, as listed on their travel document." },
@@ -192,60 +240,19 @@ const EXTRA_FIELDS: FieldDef[] = [
 
 function renderGuestFlow(state: AppState, handlers: Handlers): void {
   const list = document.getElementById("guest-tourist-list");
-  const summary = document.getElementById("guest-summary-row");
-  const downloadBtn = document.getElementById("btn-guest-download") as HTMLButtonElement | null;
-  const stickyBtn = document.getElementById("btn-download-sticky") as HTMLButtonElement | null;
-  const status = document.getElementById("guest-download-status");
-  const stickyStatus = document.getElementById("sticky-status");
-  if (!list || !summary || !downloadBtn) return;
+  if (!list) return;
 
   list.innerHTML = "";
-  let totalErrors = 0;
-
   state.tourists.forEach((t, idx) => {
-    const v = validateTourist(t, "guest");
-    totalErrors += v.errors.length;
     list.appendChild(
-      renderTouristCard(t, idx, v.errors, handlers, {
+      renderTouristCard(state, t, handlers, {
         mode: "guest",
         labelEyebrow: `Person ${idx + 1}`,
       }),
     );
   });
 
-  if (state.tourists.length === 0) {
-    summary.textContent = "Add at least one person above.";
-    summary.className = "summary-row";
-  } else if (totalErrors === 0) {
-    summary.innerHTML = `<span class="chip chip-ok">All set</span> Save the file and send it to your host.`;
-    summary.className = "summary-row";
-  } else {
-    summary.innerHTML = `<span class="chip chip-error">${totalErrors} field${totalErrors === 1 ? "" : "s"} to fill in</span> Then you can save the file.`;
-    summary.className = "summary-row";
-  }
-
-  const disabled = totalErrors > 0 || state.tourists.length === 0;
-  downloadBtn.disabled = disabled;
-  if (stickyBtn) stickyBtn.disabled = disabled;
-  if (status) {
-    status.textContent =
-      state.tourists.length === 0
-        ? "Add at least one person above first."
-        : totalErrors > 0
-        ? "Fill in the missing fields above to enable saving."
-        : `Ready. The file will save to your device when you click the button.`;
-  }
-  if (stickyStatus) {
-    stickyStatus.textContent =
-      state.tourists.length === 0
-        ? "Add a person"
-        : totalErrors > 0
-        ? `${totalErrors} to fix`
-        : "Ready to save";
-  }
-
-  const previewEl = document.getElementById("guest-xml-preview");
-  if (previewEl) previewEl.innerHTML = formatXml(serialiseImportTourists(state.tourists));
+  refreshDerived(state);
 }
 
 /* ─────────────────────────── Host flow ─────────────────────────── */
@@ -254,93 +261,123 @@ function renderHostFlow(state: AppState, handlers: Handlers): void {
   renderSettings(state);
 
   const list = document.getElementById("tourist-list");
-  const summary = document.getElementById("host-summary-row");
-  const downloadBtn = document.getElementById("btn-download") as HTMLButtonElement | null;
-  const stickyBtn = document.getElementById("btn-download-sticky") as HTMLButtonElement | null;
-  const status = document.getElementById("download-status");
-  const stickyStatus = document.getElementById("sticky-status");
-  if (!list || !summary || !downloadBtn) return;
+  if (!list) return;
 
   list.innerHTML = "";
-  let totalErrors = 0;
   state.tourists.forEach((t, idx) => {
-    const v = validateTourist(t, "host");
-    totalErrors += v.errors.length;
     list.appendChild(
-      renderTouristCard(t, idx, v.errors, handlers, {
+      renderTouristCard(state, t, handlers, {
         mode: "host",
         labelEyebrow: `Guest ${idx + 1}`,
       }),
     );
   });
 
-  if (state.tourists.length === 0) {
-    summary.textContent = "No guests yet. Import a file or add one by hand above.";
+  refreshDerived(state);
+}
+
+/* ──────────────── Derived UI (summary, buttons, preview) ──────────────── */
+
+let previewTimer: ReturnType<typeof setTimeout> | undefined;
+
+/**
+ * Recompute everything that depends on the whole tourist list but does NOT own
+ * any focusable input: the summary line, the sticky status, and the file
+ * preview. Safe to call on every keystroke.
+ */
+export function refreshDerived(state: AppState): void {
+  const mode: Mode = state.mode ?? "host";
+  const isGuest = mode === "guest";
+
+  let totalErrors = 0;
+  for (const t of state.tourists) {
+    totalErrors += validateTourist(t, mode).errors.length;
+  }
+  const count = state.tourists.length;
+
+  const summary = document.getElementById(
+    isGuest ? "guest-summary-row" : "host-summary-row",
+  );
+  if (summary) {
     summary.className = "summary-row";
-  } else if (totalErrors === 0) {
-    summary.innerHTML = `<span class="chip chip-ok">All set</span> ${state.tourists.length} guest${state.tourists.length === 1 ? "" : "s"} ready to save.`;
-    summary.className = "summary-row";
-  } else {
-    summary.innerHTML = `<span class="chip chip-error">${totalErrors} field${totalErrors === 1 ? "" : "s"} to fix</span> Once they're filled in, you can save the file.`;
-    summary.className = "summary-row";
+    if (count === 0) {
+      summary.textContent = isGuest
+        ? "Add at least one person above."
+        : "No guests yet. Import a file or add one by hand above.";
+    } else if (totalErrors === 0) {
+      summary.innerHTML = isGuest
+        ? `<span class="chip chip-ok">All set</span> Save the file and send it to your host.`
+        : `<span class="chip chip-ok">All set</span> ${count} guest${count === 1 ? "" : "s"} ready to save.`;
+    } else {
+      summary.innerHTML = `<span class="chip chip-error">${totalErrors} field${totalErrors === 1 ? "" : "s"} still to fill in</span> Save will guide you to anything missing.`;
+    }
   }
 
-  const disabled = totalErrors > 0 || state.tourists.length === 0;
-  downloadBtn.disabled = disabled;
-  if (stickyBtn) stickyBtn.disabled = disabled;
+  const status = document.getElementById(
+    isGuest ? "guest-download-status" : "download-status",
+  );
   if (status) {
     status.textContent =
-      state.tourists.length === 0
-        ? "Add at least one guest above first."
+      count === 0
+        ? isGuest
+          ? "Add at least one person above first."
+          : "Add at least one guest above first."
         : totalErrors > 0
-        ? "Fill in the missing fields above to enable saving."
-        : `${state.tourists.length} guest${state.tourists.length === 1 ? "" : "s"} ready. Click to save the file to your computer.`;
-  }
-  if (stickyStatus) {
-    stickyStatus.textContent =
-      state.tourists.length === 0
-        ? "Add a guest"
-        : totalErrors > 0
-        ? `${totalErrors} to fix`
-        : `${state.tourists.length} ready`;
+        ? "Click save and we'll highlight anything still missing."
+        : isGuest
+        ? "Ready. The file will save to your device when you click the button."
+        : `${count} guest${count === 1 ? "" : "s"} ready. Click to save the file to your computer.`;
   }
 
-  const previewEl = document.getElementById("xml-preview");
-  if (previewEl) previewEl.innerHTML = formatXml(serialiseImportTourists(state.tourists));
+  const stickyStatus = document.getElementById("sticky-status");
+  if (stickyStatus) {
+    stickyStatus.textContent =
+      count === 0
+        ? isGuest
+          ? "Add a person"
+          : "Add a guest"
+        : totalErrors > 0
+        ? `${totalErrors} to fill in`
+        : isGuest
+        ? "Ready to save"
+        : `${count} ready`;
+  }
+
+  // The preview is the heaviest bit of work, so debounce it.
+  if (previewTimer !== undefined) clearTimeout(previewTimer);
+  previewTimer = setTimeout(() => {
+    const previewEl = document.getElementById(
+      isGuest ? "guest-xml-preview" : "xml-preview",
+    );
+    if (previewEl) {
+      previewEl.innerHTML = formatXml(serialiseImportTourists(state.tourists));
+    }
+  }, 120);
 }
 
 /* ─────────────────────────── Tourist card ─────────────────────────── */
 
 type CardOptions = { mode: Mode; labelEyebrow: string };
 
+function shouldShowError(
+  state: AppState,
+  id: string,
+  field: keyof Tourist,
+): boolean {
+  return (
+    state.ui.submitAttempted || state.ui.touched.has(`${id}::${String(field)}`)
+  );
+}
+
 function renderTouristCard(
+  state: AppState,
   t: Tourist,
-  _idx: number,
-  errors: ValidationError[],
   handlers: Handlers,
   opts: CardOptions,
 ): HTMLElement {
-  const errorByField = new Map<keyof Tourist, string>();
-  for (const e of errors) errorByField.set(e.field, e.message);
-
   const article = document.createElement("article");
   article.className = "guest-card";
   article.dataset["id"] = t.id;
-
-  const headlineName = guestDisplayName(t);
-  const sub = guestSubline(t);
-  const okChip =
-    errors.length === 0
-      ? `<span class="chip chip-ok">Looks good</span>`
-      : `<span class="chip chip-error">${errors.length} to fix</span>`;
-
-  // Host sees an extra "imported" hint if facility hasn't been set on this row
-  const hostMissingHostInfo =
-    opts.mode === "host" && (!t.facility || !t.ttPaymentCategory || !t.arrivalOrganisation);
-  const hostHint =
-    hostMissingHostInfo
-      ? `<p class="guest-hint">Add the tax category and arrival code below to finish this guest.</p>`
-      : "";
 
   // Guests see only required fields; hosts see optional fields too.
   const identityFields =
@@ -352,126 +389,234 @@ function renderTouristCard(
     <header class="guest-header">
       <div>
         <span class="guest-eyebrow">${escapeAttr(opts.labelEyebrow)}</span>
-        <h3 class="guest-name">${escapeAttr(headlineName)}</h3>
-        ${sub ? `<p class="guest-sub">${escapeAttr(sub)}</p>` : ""}
+        <h3 class="guest-name"></h3>
+        <p class="guest-sub" hidden></p>
       </div>
       <div class="guest-header-actions">
-        ${okChip}
+        <span class="guest-chip-slot"></span>
         <button type="button" class="btn btn-danger btn-small" data-action="remove">${opts.mode === "guest" ? "Remove" : "Remove guest"}</button>
       </div>
     </header>
-    ${hostHint}
+    <div class="guest-hint-slot"></div>
     <section class="guest-section">
       <h4 class="section-title">${opts.mode === "guest" ? "About you" : "Who is the guest"}</h4>
       <div class="form-grid">
-        ${renderGender(t, errorByField)}
-        ${identityFields.map((f) => renderField(t, f, errorByField)).join("")}
+        ${renderGender(t)}
+        ${identityFields.map((f) => renderField(t, f)).join("")}
       </div>
     </section>
-    ${section("Travel document", DOC_FIELDS, t, errorByField)}
-    ${section("Stay dates", STAY_FIELDS, t, errorByField)}
-    ${opts.mode === "host" ? section("Tax and arrival", TAX_FIELDS, t, errorByField) : ""}
+    ${section("Travel document", DOC_FIELDS, t)}
+    ${section("Stay dates", STAY_FIELDS, t)}
+    ${opts.mode === "host" ? section("Tax and arrival", TAX_FIELDS, t) : ""}
     ${
       opts.mode === "host"
         ? `<details class="more-options">
              <summary>More options <span class="chev" aria-hidden="true">›</span></summary>
-             ${section("", EXTRA_FIELDS, t, errorByField)}
+             ${section("", EXTRA_FIELDS, t)}
            </details>`
         : ""
     }
   `;
 
-  article.addEventListener("input", (e) => {
+  const onFieldEvent = (e: Event) => {
     const target = e.target as HTMLInputElement | HTMLSelectElement;
-    if (!target.name) return;
-    handlers.onTouristChange(t.id, { [target.name]: target.value } as Partial<Tourist>);
+    const name = target.name;
+    if (!name) return;
+    let value = target.value;
+    if ((target as HTMLElement).dataset["datemask"] !== undefined) {
+      value = maskDate(value);
+      target.value = value;
+    } else if ((target as HTMLElement).dataset["country"] !== undefined) {
+      value = resolveCountryCode(value);
+    }
+    handlers.onTouristChange(t.id, { [name]: value } as Partial<Tourist>);
+  };
+  article.addEventListener("input", onFieldEvent);
+  article.addEventListener("change", onFieldEvent);
+
+  // Reveal a field's error only once the user leaves it (blur), and tidy up a
+  // country name to its canonical spelling at the same time.
+  article.addEventListener("focusout", (e) => {
+    const target = e.target as HTMLElement;
+    const label = target.closest<HTMLElement>("[data-field]");
+    if (!label) return;
+    const field = label.dataset["field"] as keyof Tourist | undefined;
+    if (!field) return;
+    if (
+      (target as HTMLInputElement).dataset?.["country"] !== undefined &&
+      "value" in target
+    ) {
+      const canonical = countryName(
+        resolveCountryCode((target as HTMLInputElement).value),
+      );
+      if (canonical) (target as HTMLInputElement).value = canonical;
+    }
+    handlers.onTouristBlur(t.id, field);
   });
-  article.addEventListener("change", (e) => {
-    const target = e.target as HTMLInputElement | HTMLSelectElement;
-    if (!target.name) return;
-    handlers.onTouristChange(t.id, { [target.name]: target.value } as Partial<Tourist>);
-  });
+
   article.querySelectorAll<HTMLButtonElement>("[data-gender]").forEach((b) => {
     b.addEventListener("click", () => {
-      handlers.onTouristChange(t.id, { gender: b.dataset["gender"] as Tourist["gender"] });
+      handlers.onTouristChange(t.id, {
+        gender: b.dataset["gender"] as Tourist["gender"],
+      });
+      handlers.onTouristBlur(t.id, "gender");
     });
   });
   article
     .querySelector<HTMLButtonElement>("[data-action='remove']")!
     .addEventListener("click", () => handlers.onRemoveTourist(t.id));
 
+  // Fill in the validation-dependent bits (header, chips, errors) now that the
+  // skeleton exists.
+  applyCardState(state, article, t, opts.mode);
+
   return article;
 }
 
-function section(
-  title: string,
-  fields: FieldDef[],
-  t: Tourist,
-  errors: Map<keyof Tourist, string>,
-): string {
+function section(title: string, fields: FieldDef[], t: Tourist): string {
   const heading = title ? `<h4 class="section-title">${title}</h4>` : "";
-  const fieldsHtml = fields.map((f) => renderField(t, f, errors)).join("");
+  const fieldsHtml = fields.map((f) => renderField(t, f)).join("");
   return `<section class="guest-section">
     ${heading}
     <div class="form-grid">${fieldsHtml}</div>
   </section>`;
 }
 
-function renderField(
+/* ──────────────── In-place card refresh (no DOM teardown) ──────────────── */
+
+/**
+ * The heart of the focus fix. Given an existing card element, update only the
+ * header text, chips, hint, and per-field error state — never the inputs the
+ * user is typing in. Querying within `root` (not the document) means it works
+ * on a card that hasn't been attached yet, so the build path can reuse it.
+ */
+export function applyCardState(
+  state: AppState,
+  root: HTMLElement,
   t: Tourist,
-  f: FieldDef,
-  errors: Map<keyof Tourist, string>,
-): string {
+  mode: Mode,
+): void {
+  const { errors } = validateTourist(t, mode);
+  const errorByField = new Map<keyof Tourist, string>();
+  for (const e of errors) errorByField.set(e.field, e.message);
+
+  // Header name + subline.
+  const nameEl = root.querySelector<HTMLElement>(".guest-name");
+  if (nameEl) nameEl.textContent = guestDisplayName(t);
+  const subEl = root.querySelector<HTMLElement>(".guest-sub");
+  if (subEl) {
+    const sub = guestSubline(t);
+    subEl.textContent = sub;
+    subEl.hidden = !sub;
+  }
+
+  // Per-field error + aria-invalid, gated on whether the field is "shown".
+  let visibleErrors = 0;
+  root.querySelectorAll<HTMLElement>("[data-field]").forEach((label) => {
+    const field = label.dataset["field"] as keyof Tourist;
+    const control = label.querySelector<HTMLElement>(
+      ".field-input, .field-select, .gender-group",
+    );
+    const errEl = label.querySelector<HTMLElement>(".field-error");
+    const show = shouldShowError(state, t.id, field);
+    const msg = show ? errorByField.get(field) ?? "" : "";
+    if (msg) visibleErrors += 1;
+    if (errEl) {
+      errEl.textContent = msg;
+      errEl.hidden = !msg;
+    }
+    if (control) control.setAttribute("aria-invalid", msg ? "true" : "false");
+  });
+
+  // Status chip: reassuring before the user has touched anything.
+  const chipSlot = root.querySelector<HTMLElement>(".guest-chip-slot");
+  if (chipSlot) {
+    if (errors.length === 0) {
+      chipSlot.innerHTML = `<span class="chip chip-ok">Looks good</span>`;
+    } else if (visibleErrors > 0) {
+      chipSlot.innerHTML = `<span class="chip chip-error">${visibleErrors} to fix</span>`;
+    } else {
+      chipSlot.innerHTML = `<span class="chip">In progress</span>`;
+    }
+  }
+
+  // Host-only nudge to finish the property/tax fields.
+  const hintSlot = root.querySelector<HTMLElement>(".guest-hint-slot");
+  if (hintSlot) {
+    const needsHostInfo =
+      mode === "host" &&
+      (!t.facility || !t.ttPaymentCategory || !t.arrivalOrganisation);
+    hintSlot.innerHTML = needsHostInfo
+      ? `<p class="guest-hint">Add the tax category and arrival code below to finish this guest.</p>`
+      : "";
+  }
+}
+
+/** Refresh a single card in place (used on every keystroke / blur). */
+export function refreshTourist(state: AppState, id: string): void {
+  const root = document.querySelector<HTMLElement>(
+    `.guest-card[data-id="${id}"]`,
+  );
+  const t = state.tourists.find((x) => x.id === id);
+  if (root && t) applyCardState(state, root, t, state.mode ?? "host");
+  refreshDerived(state);
+}
+
+/* ─────────────────────────── Fields ─────────────────────────── */
+
+function renderField(t: Tourist, f: FieldDef): string {
   const id = `t-${t.id}-${String(f.key)}`;
   const value = String(t[f.key] ?? "");
-  const err = errors.get(f.key);
-  const ariaInvalid = err ? "true" : "false";
+  const describedBy = `${id}-help ${id}-error`;
 
   let control = "";
   if (f.control === "country") {
-    control = renderCountrySelect(id, f.key, value, ariaInvalid);
+    control = renderCountryCombo(id, f.key, value, describedBy);
+  } else if (f.key === "dateOfBirth") {
+    // A masked free-text field — native date pickers are miserable for a
+    // birthday decades in the past.
+    control = `<input id="${id}" class="field-input" type="text" inputmode="numeric"
+              name="${String(f.key)}" data-datemask maxlength="10" placeholder="YYYY-MM-DD"
+              value="${escapeAttr(value)}" aria-invalid="false" aria-describedby="${describedBy}" />`;
   } else if (f.control === "documentType") {
-    control = `<select id="${id}" class="field-select" name="${f.key}" aria-invalid="${ariaInvalid}">
+    control = `<select id="${id}" class="field-select" name="${String(f.key)}" aria-invalid="false" aria-describedby="${describedBy}">
       ${DOCUMENT_TYPES.map((d) => `<option value="${escapeAttr(d.code)}" ${d.code === value ? "selected" : ""}>${escapeAttr(d.label)}</option>`).join("")}
     </select>`;
   } else if (f.control === "payment") {
-    control = `<select id="${id}" class="field-select" name="${f.key}" aria-invalid="${ariaInvalid}">
+    control = `<select id="${id}" class="field-select" name="${String(f.key)}" aria-invalid="false" aria-describedby="${describedBy}">
       <option value="">Choose a category…</option>
       ${PAYMENT_CATEGORIES.map((p) => `<option value="${escapeAttr(p)}" ${p === value ? "selected" : ""}>${escapeAttr(p)}</option>`).join("")}
     </select>`;
   } else {
-    control = `<input id="${id}" class="field-input" type="${f.type}" name="${f.key}"
+    control = `<input id="${id}" class="field-input" type="${f.type}" name="${String(f.key)}"
               placeholder="${escapeAttr(f.placeholder ?? "")}"
-              value="${escapeAttr(value)}" aria-invalid="${ariaInvalid}" />`;
+              value="${escapeAttr(value)}" aria-invalid="false" aria-describedby="${describedBy}" />`;
   }
 
-  return fieldShell({ id, label: f.label, help: f.help, control, error: err });
+  return fieldShell({ id, label: f.label, help: f.help, control, field: f.key });
 }
 
-function renderCountrySelect(
+function renderCountryCombo(
   id: string,
   name: keyof Tourist,
-  value: string,
-  ariaInvalid: string,
+  code: string,
+  describedBy: string,
 ): string {
-  const options = SORTED_COUNTRIES.map(
-    (c) => `<option value="${c.code}" ${c.code === value ? "selected" : ""}>${escapeAttr(c.name)}</option>`,
-  ).join("");
-  return `<select id="${id}" class="field-select" name="${String(name)}" aria-invalid="${ariaInvalid}">
-    <option value="">Choose a country…</option>
-    ${options}
-  </select>`;
+  const display = code ? countryName(code) ?? code : "";
+  return `<input id="${id}" class="field-input" type="text" name="${String(name)}"
+    list="country-list" data-country autocomplete="off" placeholder="Start typing a country…"
+    value="${escapeAttr(display)}" aria-invalid="false" aria-describedby="${describedBy}" />`;
 }
 
-function renderGender(t: Tourist, errors: Map<keyof Tourist, string>): string {
-  const err = errors.get("gender");
+function renderGender(t: Tourist): string {
+  const id = `t-${t.id}-gender`;
   return fieldShell({
-    id: `t-${t.id}-gender`,
+    id,
     label: "Sex (as on document)",
     help: "Pick the option that matches the travel document.",
-    error: err,
+    field: "gender",
     control: `
-      <div class="gender-group" role="group" aria-invalid="${err ? "true" : "false"}">
+      <div class="gender-group" role="group" aria-invalid="false" aria-describedby="${id}-help ${id}-error">
         <button type="button" class="gender-pill" data-gender="M" aria-pressed="${t.gender === "M"}">Male</button>
         <button type="button" class="gender-pill" data-gender="F" aria-pressed="${t.gender === "F"}">Female</button>
       </div>
@@ -486,13 +631,14 @@ type ShellArgs = {
   label: string;
   help: string;
   control: string;
-  error?: string | undefined;
+  field?: keyof Tourist;
 };
 
-function fieldShell({ id, label, help, control, error }: ShellArgs): string {
+function fieldShell({ id, label, help, control, field }: ShellArgs): string {
   const helpId = `${id}-help`;
+  const errId = `${id}-error`;
   return `
-    <label class="field" for="${id}">
+    <label class="field" for="${id}"${field ? ` data-field="${String(field)}"` : ""}>
       <span class="field-label-row">
         <span class="field-label">${escapeAttr(label)}</span>
         <button type="button" class="help-btn" aria-controls="${helpId}" aria-expanded="false"
@@ -500,7 +646,7 @@ function fieldShell({ id, label, help, control, error }: ShellArgs): string {
       </span>
       ${control}
       <span id="${helpId}" class="field-help" hidden>${escapeAttr(help)}</span>
-      ${error ? `<span class="field-error">${escapeAttr(error)}</span>` : ""}
+      <span id="${errId}" class="field-error" role="alert" hidden></span>
     </label>
   `;
 }
