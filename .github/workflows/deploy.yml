@@ -30,8 +30,11 @@ jobs:
       - name: Typecheck
         run: bun run typecheck
 
+      # "bun run test", not "bun test": the bare form walks the whole repo and
+      # picks up e2e/, which needs a browser this job does not install. The
+      # browser tests already gate every pull request in ci.yml.
       - name: Test
-        run: bun test
+        run: bun run test
 
       - name: Build
         run: bun run build
