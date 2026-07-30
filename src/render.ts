@@ -565,7 +565,10 @@ export function refreshTourist(state: AppState, id: string): void {
 /* ─────────────────────────── Fields ─────────────────────────── */
 
 function renderField(t: Tourist, f: FieldDef): string {
-  const id = `t-${t.id}-${String(f.key)}`;
+  // escapeAttr even though ids are sanitised at the parser/storage boundary —
+  // this string lands in id=, for= and aria-describedby, so it should not rely
+  // on a caller elsewhere having cleaned it.
+  const id = escapeAttr(`t-${t.id}-${String(f.key)}`);
   const value = String(t[f.key] ?? "");
   const describedBy = `${id}-help ${id}-error`;
 
@@ -609,7 +612,7 @@ function renderCountryCombo(
 }
 
 function renderGender(t: Tourist): string {
-  const id = `t-${t.id}-gender`;
+  const id = escapeAttr(`t-${t.id}-gender`);
   return fieldShell({
     id,
     label: "Sex (as on document)",

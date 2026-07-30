@@ -33,8 +33,10 @@ The file is XML that mirrors the public `ImportTourists` Web-API contract — th
 src/
   index.html        page shell
   main.ts           entry: wires DOM + state + actions
-  state.ts          tourist list + settings + localStorage
+  state.ts          tourist list + settings + local/sessionStorage
   render.ts         DOM render (no framework)
+  parser.ts         reads an imported guest XML file back into rows
+  ids.ts            row id generation + sanitising
   validation.ts     per-field + per-tourist validation
   xml.ts            XML escape + ImportTourists serializer
   countries.ts      ISO 3166-1 alpha-3 list
@@ -46,12 +48,12 @@ scripts/
   copy-public.ts    public/* and font subsets → dist/
   dev.ts            watch + Bun.serve
 tests/              bun test suites
-.github/workflows/  GitHub Pages deploy
+.github/workflows/  CI (PR gate) + GitHub Pages deploy
 ```
 
 ## Deployment
 
-GitHub Pages is wired up via `.github/workflows/deploy.yml`. Enable Pages with source **GitHub Actions** in the repo settings; every push to `main` triggers a build of `dist/` and publishes it.
+GitHub Pages is wired up via `.github/workflows/deploy.yml`. Enable Pages with source **GitHub Actions** in the repo settings; every push to `master` triggers a build of `dist/` and publishes it. Pull requests are gated separately by `.github/workflows/ci.yml` (typecheck, test, build).
 
 A custom domain later: drop a `CNAME` file into `public/` and configure the domain in the repo's Pages settings. All assets already use relative paths so nothing else changes.
 
