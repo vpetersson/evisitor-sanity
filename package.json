@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "A modern, calm form for generating eVisitor (Croatia) tourist check-in XML you can upload by hand.",
+  "license": "AGPL-3.0-or-later",
   "type": "module",
   "scripts": {
     "dev": "bun run scripts/dev.ts",

@@ -66,6 +66,12 @@ The published Web-API wiki names every field but does not ship a sample XML. A f
 - `DocumentType` is emitted as `Passport` / `IdentityCard` / `DriverLicense` / `OtherDocument`. The exact codes the system uses are not publicly documented; adjust `src/document-types.ts` if needed.
 - `TTPaymentCategory` and `ArrivalOrganisation` (MUP code) are free-text. Their lookup tables are not publicly published.
 
+## License
+
+[GNU AGPL v3](LICENSE) or later.
+
+The Affero clause is the point rather than an afterthought: this is a tool people hand their guests' passport numbers to, so anyone who deploys a modified copy for others to use over a network has to publish that modified source. That is what lets a host verify the version they are typing into is the version described here.
+
 ## Disclaimer
 
 Unofficial. Not affiliated with eVisitor, the Croatian Tourist Board, or any government body. Use at your own discretion. Always double-check the produced XML before uploading.
