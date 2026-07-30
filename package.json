@@ -17,15 +17,15 @@
     "clean": "rm -rf dist"
   },
   "devDependencies": {
-    "@tailwindcss/cli": "^4.1.7",
+    "@tailwindcss/cli": "^4.3.3",
     "@types/bun": "^1.1.13",
-    "happy-dom": "^20.9.0",
-    "tailwindcss": "^4.1.7",
-    "typescript": "^5.6.3"
+    "happy-dom": "^20.11.1",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^7.0.2"
   },
   "dependencies": {
-    "@fontsource-variable/fraunces": "^5.1.0",
-    "@fontsource-variable/geist": "^5.1.0",
-    "@fontsource-variable/geist-mono": "^5.1.0"
+    "@fontsource-variable/fraunces": "^5.3.0",
+    "@fontsource-variable/geist": "^5.3.0",
+    "@fontsource-variable/geist-mono": "^5.3.0"
   }
 }
