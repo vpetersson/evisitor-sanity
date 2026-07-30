@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { open, startHarness, stopHarness } from "./harness.ts";
+import { parseCheckIns } from "./xml.ts";
 import type { Page } from "playwright";
 
 /**
@@ -86,11 +87,27 @@ describe("a guest fills in their details and sends a file to their host", () => 
     await download.saveAs(guestFile);
     expect(download.suggestedFilename()).toMatch(/\.xml$/);
 
-    const sent = await Bun.file(guestFile).text();
-    expect(sent).toContain("<TouristCheckIns>");
-    expect(sent).toContain("<TouristSurname>Kowalski</TouristSurname>");
-    expect(sent).toContain("<Gender>F</Gender>");
-    expect(sent).toContain("<DateOfBirth>19900415</DateOfBirth>");
+    // Parsed with ElementTree, not string-matched: an independent parser has to
+    // agree the file is well-formed and shaped the way we claim.
+    const sentDoc = parseCheckIns(guestFile);
+    expect(sentDoc.root).toBe("TouristCheckIns");
+    expect(sentDoc.rows).toHaveLength(1);
+    const g = sentDoc.rows[0]!.fields;
+    expect(g["TouristName"]).toBe("Anna");
+    expect(g["TouristSurname"]).toBe("Kowalski");
+    expect(g["Gender"]).toBe("F");
+    expect(g["DateOfBirth"]).toBe("19900415");
+    expect(g["CityOfBirth"]).toBe("Krakow");
+    expect(g["CityOfResidence"]).toBe("Warsaw");
+    expect(g["DocumentNumber"]).toBe("AB1234567");
+    // Countries are stored as ISO codes, not the names the guest typed.
+    expect(g["Citizenship"]).toBe("POL");
+    expect(g["CountryOfBirth"]).toBe("POL");
+    // Dates are serialised in eVisitor's compact form, not ISO.
+    expect(g["StayFrom"]).toBe("20260801");
+    expect(g["ForeseenStayUntil"]).toBe("20260808");
+    // Empty optional fields are omitted rather than emitted blank.
+    expect(g["TouristMiddleName"]).toBeUndefined();
     await guest.close();
 
     /* ─── Their host ────────────────────────────────────────────── */
@@ -133,26 +150,60 @@ describe("a guest fills in their details and sends a file to their host", () => 
     const hostFile = "/tmp/evisitor-journey-host.xml";
     await finalDl.saveAs(hostFile);
 
-    const final = await Bun.file(hostFile).text();
-    expect(final).toContain("<TouristSurname>Kowalski</TouristSurname>");
-    expect(final).toContain("<Facility>12345-67</Facility>");
-    expect(final).toContain("<Gender>F</Gender>");
+    const finalDoc = parseCheckIns(hostFile);
+    expect(finalDoc.root).toBe("TouristCheckIns");
+    expect(finalDoc.rows).toHaveLength(1);
+    const h = finalDoc.rows[0]!.fields;
 
-    // It has to be well-formed, or eVisitor will simply refuse it.
-    const parsed = await host.evaluate((xml) => {
-      const doc = new DOMParser().parseFromString(xml, "application/xml");
-      return {
-        error: !!doc.getElementsByTagName("parsererror")[0],
-        rows: doc.getElementsByTagName("TouristCheckIn").length,
-        root: doc.documentElement.tagName,
-      };
-    }, final);
-    expect(parsed.error).toBe(false);
-    expect(parsed.rows).toBe(1);
-    expect(parsed.root).toBe("TouristCheckIns");
+    // The guest's details survived the round trip untouched...
+    expect(h["TouristSurname"]).toBe("Kowalski");
+    expect(h["Gender"]).toBe("F");
+    expect(h["DateOfBirth"]).toBe("19900415");
+    // ...and the host's own fields are attached to the same row.
+    expect(h["Facility"]).toBe("12345-67");
+    expect(h["TTPaymentCategory"]).toBeTruthy();
+
+    // eVisitor reads a positional contract, so element order matters as much as
+    // the values. ID must lead the row and the fields must stay in schema order.
+    const order = finalDoc.rows[0]!.order;
+    expect(order[0]).toBe("ID");
+    const seen = order.filter((t) => ["StayFrom", "DocumentNumber", "TouristName", "Gender"].includes(t));
+    expect(seen).toEqual(["StayFrom", "DocumentNumber", "TouristName", "Gender"]);
 
     await host.close();
   }, 90_000);
+});
+
+describe("a guest who types an impossible date is told so", () => {
+  // The date-of-birth field is a masked text input, not a native picker, so
+  // nothing in the browser stops 31 February being typed. Without a real
+  // calendar check it serialised to 19900231 and eVisitor rejected the upload
+  // long after the guest had gone.
+  test("31 February is refused at the point of typing it", async () => {
+    const page = await open(base, { mode: "guest", width: 1280 });
+    await type(page, "dateOfBirth", "19900231");
+    await page.keyboard.press("Tab");
+    await page.waitForTimeout(400);
+
+    const msg = await page.evaluate(() => {
+      const label = document.querySelector('[data-field="dateOfBirth"]');
+      const err = label?.querySelector(".field-error") as HTMLElement | null;
+      return err && !err.hidden ? err.textContent?.trim() ?? "" : "";
+    });
+    expect(msg).toMatch(/exist/i);
+
+    // A real date clears it.
+    await type(page, "dateOfBirth", "19900415");
+    await page.keyboard.press("Tab");
+    await page.waitForTimeout(400);
+    const cleared = await page.evaluate(() => {
+      const label = document.querySelector('[data-field="dateOfBirth"]');
+      const err = label?.querySelector(".field-error") as HTMLElement | null;
+      return err && !err.hidden ? err.textContent?.trim() ?? "" : "";
+    });
+    expect(cleared).toBe("");
+    await page.close();
+  }, 60_000);
 });
 
 describe("a guest who leaves things blank is told what is missing", () => {
