@@ -65,7 +65,10 @@ export function validateTourist(
 
   const required = mode === "guest" ? GUEST_REQUIRED_FIELDS : HOST_REQUIRED_FIELDS;
   for (const field of required) {
-    if (!t[field]) push(field, "Please fill this in.");
+    // "Required", not a sentence: this fires on every empty field at once, so a
+    // full sentence repeated a dozen times down the card is noise that buries the
+    // messages that actually say something specific (bad date, bad email).
+    if (!t[field]) push(field, "Required");
   }
 
   for (const field of COUNTRY_FIELDS) {

@@ -143,7 +143,8 @@ describe("in-place card refresh", () => {
     input.dispatchEvent(new win.Event("focusout", { bubbles: true }) as unknown as Event);
     expect(state.ui.touched.has("aaa::touristName")).toBe(true);
     expect(err.hidden).toBe(false);
-    expect(err.textContent).toContain("fill");
+    // The point is that a message appears, not its wording.
+    expect((err.textContent ?? "").trim().length).toBeGreaterThan(0);
   });
 
   it("country combobox stores the ISO code from a typed name", async () => {

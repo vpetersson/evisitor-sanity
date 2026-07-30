@@ -8,6 +8,7 @@ A modern, static, single-page tool that lets accommodation hosts enter overnight
 - No CDN, no analytics, no backend. Fonts and styles are self-hosted.
 - Settings (Facility code, agency OIB, defaults) persist in `localStorage`.
 - Designed to look unlike the official UI on purpose.
+- Colours are [Catppuccin](https://github.com/catppuccin/palette): Latte in light mode, Mocha in dark. A few accents are nudged toward the palette's own `text` where the published value fell under the WCAG AA floor for small text — each one is annotated with its measured ratio in `src/styles.css`.
 
 ## Quickstart
 
