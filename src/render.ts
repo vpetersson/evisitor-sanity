@@ -518,6 +518,15 @@ export function applyCardState(
     subEl.hidden = !sub;
   }
 
+  // Sex pills. renderGender stamps aria-pressed once when the card is built,
+  // but the card refreshes in place to keep focus, so nothing ever updated it
+  // again: clicking Male or Female set the value and left both pills looking
+  // unselected. The pressed state is what the stylesheet colours, so the
+  // control appeared not to work at all.
+  root.querySelectorAll<HTMLButtonElement>(".gender-pill").forEach((pill) => {
+    pill.setAttribute("aria-pressed", String(pill.dataset["gender"] === t.gender));
+  });
+
   // Per-field error + aria-invalid, gated on whether the field is "shown".
   let visibleErrors = 0;
   root.querySelectorAll<HTMLElement>("[data-field]").forEach((label) => {

@@ -193,8 +193,21 @@ button { font: inherit; cursor: pointer; }
   gap: 28px;
   padding-top: 28px;
 }
+
+/* The flow wrappers are the only children .main-stack actually spaces, so its
+   gap never reached the hero and cards inside them: every section butted
+   straight up against the next with 0px between. They carry the same rhythm. */
+#guest-flow,
+#host-flow {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
 @media (min-width: 760px) {
   .main-stack { gap: 40px; padding-top: 44px; }
+  #guest-flow,
+  #host-flow { gap: 40px; }
 }
 
 /* ── Hero ─────────────────────────────────────────────────────── */

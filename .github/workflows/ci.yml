@@ -31,7 +31,17 @@ jobs:
         run: bun run typecheck
 
       - name: Test
-        run: bun test
+        run: bun run test
 
       - name: Build
         run: bun run build
+
+      # The browser tests are the only thing that can see layout and interaction
+      # bugs: a section rendering with no spacing, a control that never shows it
+      # is invalid, a sex pill that changes the value without lighting up. None
+      # of those fail a typecheck or a happy-dom unit test.
+      - name: Install Chromium for the browser tests
+        run: bunx playwright install --with-deps chromium
+
+      - name: Browser tests
+        run: bun run test:e2e

@@ -13,13 +13,16 @@
     "build:css": "bunx @tailwindcss/cli -i ./src/styles.css -o ./dist/assets/styles.css --minify",
     "build:js": "bun build ./src/main.ts --outdir ./dist/assets --entry-naming main.js --minify --target browser",
     "typecheck": "bunx tsc --noEmit",
-    "test": "bun test",
-    "clean": "rm -rf dist"
+    "test": "bun test tests/",
+    "clean": "rm -rf dist",
+    "test:e2e": "bun run build && bun run e2e/run.ts",
+    "test:all": "bun run test && bun run test:e2e"
   },
   "devDependencies": {
     "@tailwindcss/cli": "^4.3.3",
     "@types/bun": "^1.1.13",
     "happy-dom": "^20.11.1",
+    "playwright": "^1.62.1",
     "tailwindcss": "^4.3.3",
     "typescript": "^7.0.2"
   },
