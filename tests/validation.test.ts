@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { validateTourist } from "../src/validation.ts";
+import { isRealDate, isRealTime, validateTourist } from "../src/validation.ts";
 import type { Tourist } from "../src/types.ts";
 
 function tourist(overrides: Partial<Tourist> = {}): Tourist {
@@ -140,5 +140,58 @@ describe("validateTourist (guest mode)", () => {
       "guest",
     );
     expect(v.errors.some((e) => e.field === "foreseenStayUntil")).toBe(true);
+  });
+});
+
+describe("dates and times must exist, not just look right", () => {
+  const withDob = (dateOfBirth: string) => tourist({ dateOfBirth });
+
+  it("accepts real dates including leap days", () => {
+    expect(isRealDate("2024-02-29")).toBe(true); // 2024 is a leap year
+    expect(isRealDate("1990-04-15")).toBe(true);
+    expect(isRealDate("2026-12-31")).toBe(true);
+  });
+
+  it("rejects dates that do not exist", () => {
+    expect(isRealDate("2026-02-31")).toBe(false); // February has no 31st
+    expect(isRealDate("2023-02-29")).toBe(false); // 2023 is not a leap year
+    expect(isRealDate("2026-13-45")).toBe(false); // month 13, day 45
+    expect(isRealDate("2026-04-31")).toBe(false); // April has 30 days
+    expect(isRealDate("2026-00-10")).toBe(false);
+    expect(isRealDate("2026-01-00")).toBe(false);
+  });
+
+  it("rejects times that do not exist", () => {
+    expect(isRealTime("15:00")).toBe(true);
+    expect(isRealTime("00:00")).toBe(true);
+    expect(isRealTime("23:59")).toBe(true);
+    expect(isRealTime("99:99")).toBe(false);
+    expect(isRealTime("24:00")).toBe(false);
+    expect(isRealTime("12:60")).toBe(false);
+  });
+
+  it("flags an impossible date of birth rather than passing it to eVisitor", () => {
+    const r = validateTourist(withDob("1990-02-31"), "guest");
+    const err = r.errors.find((e) => e.field === "dateOfBirth");
+    expect(err).toBeDefined();
+    expect(err!.message).toMatch(/does not exist|doesn't exist/i);
+  });
+
+  it("distinguishes a half-typed date from an impossible one", () => {
+    const partial = validateTourist(withDob("1990-04"), "guest");
+    expect(partial.errors.find((e) => e.field === "dateOfBirth")!.message).toMatch(/YYYY-MM-DD/);
+
+    const impossible = validateTourist(withDob("1990-04-31"), "guest");
+    expect(impossible.errors.find((e) => e.field === "dateOfBirth")!.message).toMatch(/exist/i);
+  });
+
+  it("flags an obviously mistyped year", () => {
+    const r = validateTourist(withDob("0990-04-15"), "guest");
+    expect(r.errors.find((e) => e.field === "dateOfBirth")!.message).toMatch(/year/i);
+  });
+
+  it("still accepts a normal birthday", () => {
+    const r = validateTourist(withDob("1985-04-15"), "guest");
+    expect(r.errors.find((e) => e.field === "dateOfBirth")).toBeUndefined();
   });
 });
