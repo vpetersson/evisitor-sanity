@@ -321,6 +321,28 @@ button { font: inherit; cursor: pointer; }
    current mode renders before it. Harmless in the single-column mobile grid. */
 .form-grid > .field-row-start { grid-column: 1; }
 
+/* Progress, shown because a bar that reflects real completion is easier to read
+   than a count of what is missing. The fill width is set from the same counts
+   the status line uses. */
+.progress {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--color-paper-2);
+  border: 1px solid var(--color-rule-soft);
+  overflow: hidden;
+  margin: 0 0 18px;
+}
+.progress-fill {
+  height: 100%;
+  width: 0;
+  border-radius: 999px;
+  background: var(--color-adriatic);
+  transition: width 0.35s var(--ease-out-soft);
+}
+@media (prefers-reduced-motion: reduce) {
+  .progress-fill { transition: none; }
+}
+
 .field-label-row {
   display: flex;
   align-items: center;
