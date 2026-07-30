@@ -1,3 +1,4 @@
+import { coerceId } from "./ids.ts";
 import type { Gender, Tourist } from "./types.ts";
 
 export class ImportError extends Error {}
@@ -94,19 +95,10 @@ function readTourist(node: Element): Tourist {
       (out as unknown as Record<string, string>)[field] = raw;
     }
   }
-  if (!out.id) out.id = newId();
+  // The file is untrusted: an <ID> that is not a well-formed identifier gets a
+  // fresh one rather than being carried into markup. See ids.ts.
+  out.id = coerceId(out.id);
   return out;
-}
-
-function newId(): string {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return crypto.randomUUID();
-  }
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    const v = c === "x" ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
 }
 
 export function parseTouristsXml(xml: string): Tourist[] {

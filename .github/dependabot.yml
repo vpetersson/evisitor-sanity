@@ -1,0 +1,51 @@
+# Dependabot configuration — static Bun-built site deployed to GitHub Pages.
+#
+# "bun", not "npm": this repo carries bun.lock and no package-lock.json, and the
+# npm ecosystem cannot read a Bun lockfile — it would bump package.json and
+# leave the lockfile behind, which `bun install --frozen-lockfile` in CI then
+# rejects. The bun ecosystem understands both and keeps them in sync.
+#
+# Everything here is grouped to "*": there are only a handful of dependencies
+# and they are all either build tooling or self-contained font packages, so a
+# quiet week should be one reviewable PR rather than eight.
+version: 2
+
+updates:
+  - package-ecosystem: 'bun'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '06:00'
+      timezone: 'Europe/London'
+    open-pull-requests-limit: 5
+    labels:
+      - 'dependencies'
+    commit-message:
+      prefix: 'chore(deps)'
+      prefix-development: 'chore(dev-deps)'
+    groups:
+      bun:
+        patterns:
+          - '*'
+
+  # CI pins actions/* and oven-sh/setup-bun. Both are first-party (GitHub, and
+  # Bun's own vendor action), so these bumps are routine — but still read the
+  # changelog before merging rather than trusting green checks alone.
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '06:00'
+      timezone: 'Europe/London'
+    open-pull-requests-limit: 5
+    labels:
+      - 'dependencies'
+      - 'github-actions'
+    commit-message:
+      prefix: 'chore(ci)'
+    groups:
+      github-actions:
+        patterns:
+          - '*'

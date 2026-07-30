@@ -1,3 +1,4 @@
+import { coerceId, newId } from "./ids.ts";
 import type { AppState, Mode, Settings, Tourist } from "./types.ts";
 
 const SETTINGS_KEY = "evx.settings.v1";
@@ -51,17 +52,6 @@ export function saveSettings(settings: Settings): void {
 export function clearSettings(): void {
   if (typeof localStorage === "undefined") return;
   localStorage.removeItem(SETTINGS_KEY);
-}
-
-function newId(): string {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return crypto.randomUUID();
-  }
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    const v = c === "x" ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
 }
 
 export function blankTourist(settings: Settings): Tourist {
@@ -140,7 +130,9 @@ export function loadTourists(settings: Settings): Tourist[] {
     // and guarantee every row keeps a stable id.
     return parsed.map((t) => {
       const base = blankTourist(settings);
-      return { ...base, ...t, id: t.id ?? base.id };
+      // coerceId, not `t.id ?? base.id`: restored rows go straight back into
+      // markup, and storage can hold whatever a previous import wrote.
+      return { ...base, ...t, id: coerceId(t.id) };
     });
   } catch {
     return [blankTourist(settings)];
