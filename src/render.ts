@@ -130,7 +130,7 @@ const SETTINGS_FIELDS: SettingsFieldDef[] = [
     label: "Default arrival code (MUP)",
     type: "text",
     placeholder: "e.g. individual booking",
-    help: "The code from the Ministry of the Interior (MUP) describing how guests typically arrive — for example individual booking, organised group, business stay.",
+    help: "The code from the Ministry of the Interior (MUP) describing how guests typically arrive, for example individual booking, organised group or business stay.",
   },
   {
     key: "defaultCheckInTime",
@@ -210,18 +210,18 @@ const IDENTITY_FIELDS: FieldDef[] = [
   { key: "touristSurname", label: "Last name", type: "text", required: true, help: "The guest's family name, exactly as written on their passport or ID." },
   { key: "touristMiddleName", label: "Middle name (optional)", type: "text", help: "Only include if the guest has a middle name on their travel document." },
   { key: "dateOfBirth", label: "Date of birth", type: "date", required: true, help: "The guest's date of birth, as printed on their passport or ID. Type it as year-month-day, e.g. 1985-04-15." },
-  { key: "citizenship", label: "Citizenship", type: "text", required: true, control: "country", help: "The country that issued the guest's passport or ID — the country of citizenship, which may differ from where they live." },
+  { key: "citizenship", label: "Citizenship", type: "text", required: true, control: "country", help: "The country that issued the guest's passport or ID. This is the country of citizenship, which may differ from where they live." },
   { key: "countryOfBirth", label: "Country of birth", type: "text", required: true, control: "country", startsRow: true, help: "The country where the guest was born, as listed on their travel document." },
   { key: "cityOfBirth", label: "City of birth", type: "text", required: true, help: "The town or city where the guest was born, as listed on their travel document." },
   { key: "countryOfResidence", label: "Country of residence", type: "text", required: true, control: "country", startsRow: true, help: "The country where the guest normally lives." },
   { key: "cityOfResidence", label: "City of residence", type: "text", required: true, help: "The town or city where the guest normally lives." },
-  { key: "residenceAddress", label: "Home address (optional)", type: "text", help: "The guest's full street address at home — only if you have it." },
+  { key: "residenceAddress", label: "Home address (optional)", type: "text", help: "The guest's full street address at home, only if you have it." },
   { key: "touristEmail", label: "Email (optional)", type: "email", help: "The guest's contact email if you have it." },
   { key: "touristTelephone", label: "Phone (optional)", type: "tel", help: "The guest's contact phone if you have it." },
 ];
 
 const DOC_FIELDS: FieldDef[] = [
-  { key: "documentType", label: "ID document type", type: "text", required: true, control: "documentType", help: "What kind of document the guest is travelling with — usually a passport, sometimes a national ID card." },
+  { key: "documentType", label: "ID document type", type: "text", required: true, control: "documentType", help: "What kind of document the guest is travelling with. Usually a passport, sometimes a national ID card." },
   { key: "documentNumber", label: "ID document number", type: "text", required: true, help: "The document number printed on the guest's passport or ID card." },
 ];
 
@@ -233,15 +233,15 @@ const STAY_FIELDS: FieldDef[] = [
 ];
 
 const TAX_FIELDS: FieldDef[] = [
-  { key: "ttPaymentCategory", label: "Tourist tax category", type: "text", required: true, control: "payment", help: "How the tourist tax applies — standard rate, reduced rate (e.g. teens), or full exemption (e.g. young children, people with disabilities)." },
-  { key: "arrivalOrganisation", label: "Arrival code (MUP)", type: "text", required: true, help: "MUP code describing how this guest arrived — for example individual booking or organised group." },
+  { key: "ttPaymentCategory", label: "Tourist tax category", type: "text", required: true, control: "payment", help: "How the tourist tax applies: standard rate, reduced rate (e.g. teens), or full exemption (e.g. young children, people with disabilities)." },
+  { key: "arrivalOrganisation", label: "Arrival code (MUP)", type: "text", required: true, help: "MUP code describing how this guest arrived, for example individual booking or organised group." },
 ];
 
 const EXTRA_FIELDS: FieldDef[] = [
   { key: "borderCrossing", label: "Border crossing (optional)", type: "text", help: "The border crossing where the guest entered Croatia." },
   { key: "passageDate", label: "Border crossing date (optional)", type: "date", help: "The date the guest crossed the border into Croatia." },
   { key: "touristAgency", label: "Travel agency OIB (optional)", type: "text", help: "If this guest came through a travel agency, that agency's 11-digit OIB." },
-  { key: "offeredServiceType", label: "Service type offered (optional)", type: "text", help: "What you offer this guest — e.g. bed only, bed and breakfast, half board, full board." },
+  { key: "offeredServiceType", label: "Service type offered (optional)", type: "text", help: "What you offer this guest, e.g. bed only, bed and breakfast, half board, full board." },
 ];
 
 /* ─────────────────────────── Guest flow ─────────────────────────── */
@@ -494,7 +494,7 @@ function section(title: string, fields: FieldDef[], t: Tourist): string {
 
 /**
  * The heart of the focus fix. Given an existing card element, update only the
- * header text, chips, hint, and per-field error state — never the inputs the
+ * header text, chips, hint, and per-field error state, never the inputs the
  * user is typing in. Querying within `root` (not the document) means it works
  * on a card that hasn't been attached yet, so the build path can reuse it.
  */
@@ -573,7 +573,7 @@ export function refreshTourist(state: AppState, id: string): void {
 /* ─────────────────────────── Fields ─────────────────────────── */
 
 function renderField(t: Tourist, f: FieldDef): string {
-  // escapeAttr even though ids are sanitised at the parser/storage boundary —
+  // escapeAttr even though ids are sanitised at the parser/storage boundary.
   // this string lands in id=, for= and aria-describedby, so it should not rely
   // on a caller elsewhere having cleaned it.
   const id = escapeAttr(`t-${t.id}-${String(f.key)}`);
@@ -584,7 +584,7 @@ function renderField(t: Tourist, f: FieldDef): string {
   if (f.control === "country") {
     control = renderCountryCombo(id, f.key, value, describedBy);
   } else if (f.key === "dateOfBirth") {
-    // A masked free-text field — native date pickers are miserable for a
+    // A masked free-text field. Native date pickers are miserable for a
     // birthday decades in the past.
     control = `<input id="${id}" class="field-input" type="text" inputmode="numeric"
               name="${String(f.key)}" data-datemask maxlength="10" placeholder="YYYY-MM-DD"

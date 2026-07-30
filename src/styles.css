@@ -79,16 +79,16 @@
      both surfaces, and the pure accents stay for fills and borders
      where the 3:1 non-text bar applies. Ratios are noted per line. */
 
-  --color-paper:        #e6e9ef; /* mantle — page */
-  --color-card:         #eff1f5; /* base — cards, inputs */
+  --color-paper:        #e6e9ef; /* mantle: page */
+  --color-card:         #eff1f5; /* base: cards, inputs */
   --color-paper-2:      #dce0e8; /* crust */
-  --color-paper-3:      #ccd0da; /* surface0 — hover/pressed */
+  --color-paper-3:      #ccd0da; /* surface0: hover/pressed */
 
-  --color-ink:          #4c4f69; /* text     — 7.06 on card */
-  --color-ink-2:        #5c5f77; /* subtext1 — 5.53 */
-  --color-ink-3:        #5c5f77; /* subtext1 — 4.73 even on crust; subtext0
+  --color-ink:          #4c4f69; /* text: 7.06 on card */
+  --color-ink-2:        #5c5f77; /* subtext1: 5.53 */
+  --color-ink-3:        #5c5f77; /* subtext1: 4.73 even on crust; subtext0
                                     only reaches 3.73 there */
-  --color-ink-4:        #8c8fa1; /* overlay1 — placeholders, disabled */
+  --color-ink-4:        #8c8fa1; /* overlay1: placeholders, disabled */
 
   --color-rule:         #bcc0cc; /* surface1 */
   --color-rule-soft:    #ccd0da; /* surface0 */
@@ -96,14 +96,14 @@
   --color-adriatic:     #335cb6; /* blue -> text-safe on every surface it
                                     lands on, incl. crust 4.74 and its own
                                     tint 4.50; white on it 6.27 */
-  --color-adriatic-2:   #3a58a1; /* darker for hover   — 6.01 / 5.14 */
-  --color-adriatic-3:   #cedbf5; /* blue 16% tint      — ink on it 5.73 */
+  --color-adriatic-2:   #3a58a1; /* darker for hover: 6.01 / 5.14 */
+  --color-adriatic-3:   #cedbf5; /* blue 16% tint: ink on it 5.73 */
 
   --color-terracotta:   #b71c43; /* red -> text-safe, clears crust too */
-  --color-terracotta-2: #eacdd7; /* red 16% tint       — ink on it 5.40 */
+  --color-terracotta-2: #eacdd7; /* red 16% tint: ink on it 5.40 */
 
-  --color-sage:         #476f50; /* green -> text-safe — 5.08 / 4.72 */
-  --color-sage-2:       #d3e4d5; /* green 16% tint     — ink on it 6.02 */
+  --color-sage:         #476f50; /* green -> text-safe: 5.08 / 4.72 */
+  --color-sage-2:       #d3e4d5; /* green 16% tint: ink on it 6.02 */
 
   --radius-sm: 6px;
   --radius-md: 10px;
@@ -396,7 +396,7 @@ button { font: inherit; cursor: pointer; }
 .gender-group {
   display: inline-flex;
   gap: 4px;
-  /* Matches the 44px min-height of the inputs it sits beside — at 4px/22px it
+  /* Matches the 44px min-height of the inputs it sits beside, at 4px/22px it
      rendered 52px against their 45px and knocked the whole row out of line. */
   min-height: 45px;
   align-items: stretch;
@@ -415,7 +415,7 @@ button { font: inherit; cursor: pointer; }
   font-size: 14.5px;
   font-weight: 500;
   color: var(--color-ink-3);
-  /* No min-height of its own — the pills stretch to the group, so the control
+  /* No min-height of its own, the pills stretch to the group, so the control
      keeps one height source instead of two fighting each other. */
 }
 .gender-pill[aria-pressed="true"] {
@@ -542,7 +542,7 @@ details[open] > summary .chev { transform: rotate(90deg); }
 /* Accent-on-accent-tint is where Latte runs out of room: its red on the red
    tint measures 4.00:1 and its green on the green tint 3.58:1. The tint and
    border still carry the status colour, which only has a 3:1 bar as non-text,
-   and the label takes `text` so it stays legible — 5.40:1 and 6.02:1. */
+   and the label takes `text` so it stays legible, 5.40:1 and 6.02:1. */
 .chip-ok { color: var(--color-ink); background: var(--color-sage-2); border-color: color-mix(in srgb, var(--color-sage) 45%, transparent); }
 .chip-error { color: var(--color-ink); background: var(--color-terracotta-2); border-color: color-mix(in srgb, var(--color-terracotta) 45%, transparent); }
 
@@ -678,7 +678,7 @@ details[open] > summary .chev { transform: rotate(90deg); }
   transition: transform 220ms var(--ease-out-soft);
 }
 
-/* Hide the sticky CTA while the user is typing — prevents mobile
+/* Hide the sticky CTA while the user is typing, prevents mobile
    keyboards from making the page feel cramped. */
 @supports selector(:has(*)) {
   body:has(
@@ -885,26 +885,26 @@ details[open] > summary .chev { transform: rotate(90deg); }
 /* ── Dark mode ────────────────────────────────────────────────── */
 @media (prefers-color-scheme: dark) {
   :root {
-    /* Catppuccin Mocha — Latte's counterpart flavour, so the two schemes
+    /* Catppuccin Mocha, Latte's counterpart flavour, so the two schemes
        are the same system rather than two unrelated palettes. Mocha's
        accents are already built for dark grounds and need no adjusting:
        blue 7.79:1, red 7.08:1, green 11.03:1 on base. */
-    --color-paper:        #181825; /* mantle — page */
-    --color-card:         #1e1e2e; /* base — cards, inputs */
+    --color-paper:        #181825; /* mantle: page */
+    --color-card:         #1e1e2e; /* base: cards, inputs */
     --color-paper-2:      #11111b; /* crust */
-    --color-paper-3:      #313244; /* surface0 — hover/pressed */
-    --color-ink:          #cdd6f4; /* text     — 11.34 on card */
+    --color-paper-3:      #313244; /* surface0: hover/pressed */
+    --color-ink:          #cdd6f4; /* text    , 11.34 on card */
     --color-ink-2:        #bac2de; /* subtext1 */
     --color-ink-3:        #a6adc8; /* subtext0 */
     --color-ink-4:        #7f849c; /* overlay1 */
     --color-rule:         #45475a; /* surface1 */
     --color-rule-soft:    #313244; /* surface0 */
-    --color-adriatic:     #89b4fa; /* blue     — 7.79 */
-    --color-adriatic-2:   #b4befe; /* lavender — lighter hover */
+    --color-adriatic:     #89b4fa; /* blue    , 7.79 */
+    --color-adriatic-2:   #b4befe; /* lavender, lighter hover */
     --color-adriatic-3:   #2a3352; /* blue tint on base */
-    --color-terracotta:   #f38ba8; /* red      — 7.08 */
+    --color-terracotta:   #f38ba8; /* red     , 7.08 */
     --color-terracotta-2: #3a2433;
-    --color-sage:         #a6e3a1; /* green    — 11.03 */
+    --color-sage:         #a6e3a1; /* green   , 11.03 */
     --color-sage-2:       #23342a;
   }
   body {
@@ -916,7 +916,7 @@ details[open] > summary .chev { transform: rotate(90deg); }
   .guest-card,
   .role-tile { background: linear-gradient(180deg, #252539, var(--color-card)); }
   .field-input, .field-select { background: var(--color-card); }
-  /* Mocha's blue is a light fill, so the label goes dark — 7.79:1. */
+  /* Mocha's blue is a light fill, so the label goes dark, 7.79:1. */
   .btn-primary { color: #1e1e2e; }
   .help-btn { background: var(--color-card); }
   .privacy { background: #19171f00; }
