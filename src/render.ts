@@ -195,6 +195,14 @@ type FieldDef = {
   help: string;
   control?: "country" | "documentType" | "payment";
   required?: boolean;
+  /**
+   * Force this field to the first column, starting a new row. The grid flows in
+   * source order, so "Country of birth" and "City of birth" only sat next to
+   * each other by luck, and they did not: citizenship fell between them and
+   * paired "City of birth" with "Country of residence". Guest mode filters out
+   * the optional fields, so any fix based on reordering breaks in host mode.
+   */
+  startsRow?: boolean;
 };
 
 const IDENTITY_FIELDS: FieldDef[] = [
@@ -203,9 +211,9 @@ const IDENTITY_FIELDS: FieldDef[] = [
   { key: "touristMiddleName", label: "Middle name (optional)", type: "text", help: "Only include if the guest has a middle name on their travel document." },
   { key: "dateOfBirth", label: "Date of birth", type: "date", required: true, help: "The guest's date of birth, as printed on their passport or ID. Type it as year-month-day, e.g. 1985-04-15." },
   { key: "citizenship", label: "Citizenship", type: "text", required: true, control: "country", help: "The country that issued the guest's passport or ID — the country of citizenship, which may differ from where they live." },
-  { key: "countryOfBirth", label: "Country of birth", type: "text", required: true, control: "country", help: "The country where the guest was born, as listed on their travel document." },
+  { key: "countryOfBirth", label: "Country of birth", type: "text", required: true, control: "country", startsRow: true, help: "The country where the guest was born, as listed on their travel document." },
   { key: "cityOfBirth", label: "City of birth", type: "text", required: true, help: "The town or city where the guest was born, as listed on their travel document." },
-  { key: "countryOfResidence", label: "Country of residence", type: "text", required: true, control: "country", help: "The country where the guest normally lives." },
+  { key: "countryOfResidence", label: "Country of residence", type: "text", required: true, control: "country", startsRow: true, help: "The country where the guest normally lives." },
   { key: "cityOfResidence", label: "City of residence", type: "text", required: true, help: "The town or city where the guest normally lives." },
   { key: "residenceAddress", label: "Home address (optional)", type: "text", help: "The guest's full street address at home — only if you have it." },
   { key: "touristEmail", label: "Email (optional)", type: "email", help: "The guest's contact email if you have it." },
@@ -534,7 +542,7 @@ export function applyCardState(
     if (errors.length === 0) {
       chipSlot.innerHTML = `<span class="chip chip-ok">Looks good</span>`;
     } else if (visibleErrors > 0) {
-      chipSlot.innerHTML = `<span class="chip chip-error">${visibleErrors} to fix</span>`;
+      chipSlot.innerHTML = `<span class="chip chip-error">${visibleErrors} to fill in</span>`;
     } else {
       chipSlot.innerHTML = `<span class="chip">In progress</span>`;
     }
@@ -596,7 +604,7 @@ function renderField(t: Tourist, f: FieldDef): string {
               value="${escapeAttr(value)}" aria-invalid="false" aria-describedby="${describedBy}" />`;
   }
 
-  return fieldShell({ id, label: f.label, help: f.help, control, field: f.key });
+  return fieldShell({ id, label: f.label, help: f.help, control, field: f.key, startsRow: f.startsRow });
 }
 
 function renderCountryCombo(
@@ -635,13 +643,14 @@ type ShellArgs = {
   help: string;
   control: string;
   field?: keyof Tourist;
+  startsRow?: boolean;
 };
 
-function fieldShell({ id, label, help, control, field }: ShellArgs): string {
+function fieldShell({ id, label, help, control, field, startsRow }: ShellArgs): string {
   const helpId = `${id}-help`;
   const errId = `${id}-error`;
   return `
-    <label class="field" for="${id}"${field ? ` data-field="${String(field)}"` : ""}>
+    <label class="field${startsRow ? " field-row-start" : ""}" for="${id}"${field ? ` data-field="${String(field)}"` : ""}>
       <span class="field-label-row">
         <span class="field-label">${escapeAttr(label)}</span>
         <button type="button" class="help-btn" aria-controls="${helpId}" aria-expanded="false"

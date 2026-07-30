@@ -298,6 +298,10 @@ button { font: inherit; cursor: pointer; }
 }
 
 .field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+/* Keeps a country/city pair on one row regardless of which optional fields the
+   current mode renders before it. Harmless in the single-column mobile grid. */
+.form-grid > .field-row-start { grid-column: 1; }
+
 .field-label-row {
   display: flex;
   align-items: center;
@@ -373,8 +377,12 @@ button { font: inherit; cursor: pointer; }
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-adriatic) 18%, transparent);
 }
 .field-input::placeholder { color: var(--color-ink-4); }
+/* .gender-group is in this list because applyCardState sets aria-invalid on it
+   exactly like the inputs, but it had no matching rule: the sex control was the
+   one required field that never showed it was the problem. */
 .field-input[aria-invalid="true"],
-.field-select[aria-invalid="true"] {
+.field-select[aria-invalid="true"],
+.gender-group[aria-invalid="true"] {
   border-color: var(--color-terracotta);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-terracotta) 14%, transparent);
 }
