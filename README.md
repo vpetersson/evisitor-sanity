@@ -25,7 +25,7 @@ bun run build      # writes dist/, deployable to any static host
 2. Click **Add guest** for each overnight visitor. Required fields show inline; the bottom-right summary turns green when everything passes.
 3. Click **Download XML**. Log in to eVisitor, go to **Turisti → Prijava putem datoteke**, and upload the file.
 
-The file is XML that mirrors the public `ImportTourists` Web-API contract — the same import path eVisitor accepts behind the web form.
+The file is XML that mirrors the public `ImportTourists` Web-API contract, the same import path eVisitor accepts behind the web form.
 
 ## Project layout
 
@@ -59,7 +59,7 @@ A custom domain later: drop a `CNAME` file into `public/` and configure the doma
 
 ## Known unknowns
 
-The published Web-API wiki names every field but does not ship a sample XML. A few details will only be confirmable on first real upload — if eVisitor rejects the file, please open an issue with the error.
+The published Web-API wiki names every field but does not ship a sample XML. A few details will only be confirmable on first real upload. If eVisitor rejects the file, please open an issue with the error.
 
 - Root element name. We emit `<TouristCheckIns>` wrapping `<TouristCheckIn>` children. If the live system wants a different root, change it in `src/xml.ts`.
 - `Gender` is emitted as `M` / `F`. If eVisitor expects numeric codes, swap them in `src/types.ts` and `src/render.ts`.

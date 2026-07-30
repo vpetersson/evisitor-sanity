@@ -3,8 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>Check-in for Croatia — share your stay details securely</title>
-    <meta name="description" content="The secure way to share your overnight stay details in Croatia. Guests fill in their info once and send a file; hosts collect the files and register them with the authorities. Nothing leaves your browser." />
+    <title>Check-in for Croatia: share your stay details securely</title>
+    <meta name="description" content="A saner way to share your overnight stay details in Croatia. Guests fill in their info once and send a file; hosts collect the files and register them with the authorities. No server, no account, no third parties." />
     <meta name="theme-color" content="#f6f1e7" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#15140f" media="(prefers-color-scheme: dark)" />
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
@@ -41,10 +41,10 @@
 
       <!-- ─────────── Mode chooser (only on first visit) ─────────── -->
       <section id="mode-chooser" class="mode-chooser" hidden>
-        <h1 class="hero-title">The secure way to share<br /><span class="hero-italic">your check-in details.</span></h1>
+        <h1 class="hero-title">A saner way to share<br /><span class="hero-italic">your check-in details.</span></h1>
         <p class="hero-lede">
           Croatian law requires every overnight stay to be reported to the authorities. This page lets you and
-          your host handle that paperwork without your data ever leaving your devices. Pick your role to start.
+          your host handle that paperwork without routing it through anyone else. Pick your role to start.
         </p>
         <div class="role-tiles">
           <button type="button" class="role-tile" data-pick-mode="guest">
@@ -80,9 +80,9 @@
           </h1>
           <p class="hero-lede">
             When you stay overnight anywhere in Croatia, your host is legally required to report your stay to the
-            authorities (through a national system called eVisitor). This is the secure way to hand over the
+            authorities (through a national system called eVisitor). This is a tidier way to hand over the
             details they need: fill in the form below once, save the small file, and send it to your host. They
-            handle the rest. Your data never leaves this device.
+            handle the rest. This page never transmits anything. You choose how the file gets to them.
           </p>
 
           <ol class="hero-steps">
@@ -90,7 +90,7 @@
               <span class="step-dot">1</span>
               <span class="step-text">
                 <strong>Fill in your details</strong>
-                <span>Name, document, dates — the same things any hotel asks at check-in.</span>
+                <span>Name, document, dates. The same things any hotel asks at check-in.</span>
               </span>
             </li>
             <li>
@@ -137,7 +137,7 @@
           <header class="step-header">
             <span class="step-eyebrow">Step 2</span>
             <h2>Save the file, send it to your host</h2>
-            <p class="step-sub">The file contains only what you typed above — nothing more. It's saved locally to your device; send it to your host however you'd like.</p>
+            <p class="step-sub">The file contains only what you typed above, nothing more. It's saved locally to your device; send it to your host however you'd like.</p>
           </header>
 
           <button id="btn-guest-download" class="btn btn-primary btn-big" type="button">
@@ -165,8 +165,8 @@
           <p class="hero-lede">
             Save your property defaults once. Drop in each guest's file (or add them by hand), set the tax category
             and arrival code, then save the final file and upload it on eVisitor under
-            <strong>Turisti → Prijava putem datoteke</strong>. Everything stays on this device — no server, no
-            account, no analytics.
+            <strong>Turisti → Prijava putem datoteke</strong>. Nothing is sent from this page: no server, no
+            account, no analytics. The only upload is the one you make to eVisitor yourself.
           </p>
 
           <ol class="hero-steps">
@@ -252,7 +252,7 @@
               Save the file to your device, then log into
               <a href="https://www.evisitor.hr/" target="_blank" rel="noopener">eVisitor</a>,
               open <strong>Turisti</strong>, choose <strong>Prijava putem datoteke</strong>,
-              and upload it. One file, one upload — that's the whole job.
+              and upload it. One file, one upload. That's the whole job.
             </p>
           </header>
 
@@ -282,7 +282,7 @@
           <article>
             <h3>On this page</h3>
             <ul class="privacy-list">
-              <li><strong>Nothing leaves your browser.</strong> There is no server. No data is ever transmitted to us or to anyone else.</li>
+              <li><strong>This page never transmits anything.</strong> There is no server and no network call, so nothing is sent to us or to any third party. Sending the file to your host is a step you take yourself, over a channel you choose. That hop is real, and it is the only one.</li>
               <li><strong>No cookies. No analytics. No third-party scripts.</strong> Nothing tracks you, here or elsewhere.</li>
               <li><strong>Closing the tab wipes everything.</strong> The only exception: if you're a host, your property defaults are kept locally so you don't have to retype them. Clear them at any time with the button below.</li>
               <li><strong>The file is yours alone.</strong> It saves to your device; nobody else sees it unless you decide to share it.</li>
@@ -330,7 +330,7 @@
       </div>
     </footer>
 
-    <!-- Sticky CTA — only shown in modes with a download action -->
+    <!-- Sticky CTA: only shown in modes with a download action -->
     <div id="sticky-cta" class="sticky-cta" hidden>
       <div class="container sticky-cta-row">
         <span id="sticky-status" class="sticky-status"></span>
