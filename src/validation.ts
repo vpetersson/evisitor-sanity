@@ -94,6 +94,24 @@ const TIME_FIELDS: ReadonlyArray<keyof Tourist> = ["timeStayFrom", "timeEstimate
 // A guest old enough to predate this is a mistyped year, not a centenarian.
 const EARLIEST_BIRTH_YEAR = 1900;
 
+/**
+ * How much of a row is actually done, counted honestly.
+ *
+ * The status line used to report only what was missing ("15 to fill in"), which
+ * is the same number framed as a deficit and reads as zero progress no matter
+ * how much has been filled in. This counts the required fields that genuinely
+ * hold a value. Some are filled before the guest types anything, because the
+ * document type and the check-in and check-out times come from defaults, so the
+ * count starts above zero on its own. Nothing here is padded to make it look
+ * further along than it is.
+ */
+export function completionOf(t: Tourist, mode: Mode = "host"): { done: number; total: number } {
+  const required = mode === "guest" ? GUEST_REQUIRED_FIELDS : HOST_REQUIRED_FIELDS;
+  // `id` is generated, never typed, so counting it would be padding.
+  const fields = required.filter((f) => f !== "id");
+  return { done: fields.filter((f) => !!t[f]).length, total: fields.length };
+}
+
 export function validateTourist(
   t: Tourist,
   mode: Mode = "host",

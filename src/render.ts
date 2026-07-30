@@ -1,7 +1,7 @@
 import { COUNTRIES, countryName } from "./countries.ts";
 import { DOCUMENT_TYPES, PAYMENT_CATEGORIES } from "./document-types.ts";
 import { serialiseImportTourists, xmlEscape } from "./xml.ts";
-import { validateTourist } from "./validation.ts";
+import { completionOf, validateTourist } from "./validation.ts";
 import type { AppState, Mode, Settings, Tourist } from "./types.ts";
 
 type Handlers = {
@@ -55,6 +55,12 @@ export function renderForMode(state: AppState, handlers: Handlers): void {
   const toggle = document.getElementById("mode-toggle") as HTMLElement | null;
   const sticky = document.getElementById("sticky-cta") as HTMLElement | null;
   if (!chooser || !guestFlow || !hostFlow || !toggle || !sticky) return;
+
+  // Keep the pre-paint attribute honest: it is what hides the chooser via CSS,
+  // so clearing the saved role has to clear it too or the chooser never returns.
+  const root = document.documentElement;
+  if (state.mode === null) root.removeAttribute("data-mode");
+  else root.setAttribute("data-mode", state.mode);
 
   if (state.mode === null) {
     chooser.hidden = false;
@@ -337,6 +343,27 @@ export function refreshDerived(state: AppState): void {
         : `${count} guest${count === 1 ? "" : "s"} ready. Click to save the file to your computer.`;
   }
 
+  // Progress, not a deficit. "15 to fill in" is the same number framed as how
+  // far there is to go, and it reads as no progress however much is done. The
+  // counts below are real: nothing is added to flatter the bar, and it starts
+  // above zero only because the document type and times come from defaults.
+  const progress = state.tourists.reduce(
+    (acc, t) => {
+      const c = completionOf(t, mode);
+      return { done: acc.done + c.done, total: acc.total + c.total };
+    },
+    { done: 0, total: 0 },
+  );
+  const pct = progress.total === 0 ? 0 : Math.round((progress.done / progress.total) * 100);
+
+  const bar = document.getElementById(isGuest ? "guest-progress" : "host-progress");
+  if (bar) {
+    bar.hidden = count === 0;
+    bar.setAttribute("aria-valuenow", String(pct));
+    const fill = bar.querySelector<HTMLElement>(".progress-fill");
+    if (fill) fill.style.width = `${pct}%`;
+  }
+
   const stickyStatus = document.getElementById("sticky-status");
   if (stickyStatus) {
     stickyStatus.textContent =
@@ -345,10 +372,23 @@ export function refreshDerived(state: AppState): void {
           ? "Add a person"
           : "Add a guest"
         : totalErrors > 0
-        ? `${totalErrors} to fill in`
+        ? `${progress.done} of ${progress.total} done`
         : isGuest
         ? "Ready to save"
         : `${count} ready`;
+  }
+
+  // Name what the button will actually produce, rather than "Save the file".
+  for (const id of ["btn-download-sticky", "btn-download", "btn-guest-download"]) {
+    const btn = document.getElementById(id);
+    const label = btn?.querySelector<HTMLElement>(".btn-label");
+    if (!label) continue;
+    label.textContent =
+      count === 0
+        ? "Save the file"
+        : count === 1
+        ? "Save file for 1 guest"
+        : `Save file for ${count} guests`;
   }
 
   // The preview is the heaviest bit of work, so debounce it.

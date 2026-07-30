@@ -1,0 +1,6 @@
+# Everything here is a single public page. Nothing to keep out of an index, and
+# no user data ever reaches a server to be crawled in the first place.
+User-agent: *
+Allow: /
+
+Sitemap: https://checkin.villalavacroatia.com/sitemap.xml

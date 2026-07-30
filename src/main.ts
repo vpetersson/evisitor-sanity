@@ -265,6 +265,25 @@ function duplicateLast(): Tourist {
   return last ? { ...last, id: crypto.randomUUID() } : blankTourist(state.settings);
 }
 
+/**
+ * Name what is about to be lost, and by name where there is a name.
+ *
+ * "Clear all guests?" asks about an abstraction. "Clear Anna Kowalski and 2
+ * others?" asks about the twenty minutes of typing that is actually at stake.
+ * The stakes here are real, so this is worth stating plainly: nothing has been
+ * saved to a server, and closing this is the end of it.
+ */
+function describeEntered(): string {
+  const named = state.tourists
+    .map((t) => [t.touristName, t.touristSurname].filter(Boolean).join(" ").trim())
+    .filter(Boolean);
+  const n = state.tourists.length;
+  if (named.length === 0) return n === 1 ? "the entry you started" : `the ${n} entries you started`;
+  if (named.length === 1 && n === 1) return named[0]!;
+  if (n - named.length === 0 && named.length === 2) return `${named[0]} and ${named[1]}`;
+  return `${named[0]} and ${n - 1} other${n - 1 === 1 ? "" : "s"}`;
+}
+
 function wireGlobalActions(): void {
   // Host: add by hand
   document.getElementById("btn-add")?.addEventListener("click", () => {
@@ -280,7 +299,7 @@ function wireGlobalActions(): void {
   });
   // Host: clear guests
   document.getElementById("btn-reset")?.addEventListener("click", () => {
-    if (!confirm("Clear all guests on this device? Your property details are kept.")) return;
+    if (!confirm(`Clear ${describeEntered()}? This cannot be undone, and nothing has been saved anywhere else. Your property details are kept.`)) return;
     resetTourists();
   });
 
@@ -292,7 +311,7 @@ function wireGlobalActions(): void {
     addTourist(duplicateLast(), "#guest-tourist-list");
   });
   document.getElementById("btn-reset-guest")?.addEventListener("click", () => {
-    if (!confirm("Clear everyone you've entered?")) return;
+    if (!confirm(`Clear ${describeEntered()}? This cannot be undone, and nothing has been saved anywhere else.`)) return;
     resetTourists();
   });
 

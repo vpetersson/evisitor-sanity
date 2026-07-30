@@ -47,9 +47,9 @@ describe("a guest fills in their details and sends a file to their host", () => 
     await guest.click('[data-pick-mode="guest"]');
     await guest.waitForSelector("#guest-flow:not([hidden])");
 
-    // Before typing anything, the form should be telling them work remains.
+    // Before typing anything, the form reports progress rather than a deficit.
     const startingStatus = await visibleText(guest, "#sticky-status");
-    expect(startingStatus).toMatch(/fill in/i);
+    expect(startingStatus).toMatch(/^\d+ of \d+ done$/);
 
     // They fill it in.
     await type(guest, "touristName", "Anna");

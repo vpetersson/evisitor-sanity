@@ -1,0 +1,128 @@
+# Check-in for Croatia: full reference
+
+> Free, open-source, browser-only generator for the Croatian eVisitor
+> `TouristCheckIns.xml` bulk-import file. https://checkin.villalavacroatia.com/
+
+This file is the long version of https://checkin.villalavacroatia.com/llms.txt
+
+## Who it is for
+
+Anyone renting out accommodation in Croatia: a house, an apartment, a room, a
+handful of units. Most people in that position run one or two properties and do
+the paperwork themselves, usually on a Saturday in August with the next arrival
+already in the driveway.
+
+It is equally for their guests, who are the people actually holding the
+passports the details come from.
+
+## The obligation it helps with
+
+Croatian law requires accommodation providers to register every overnight stay
+with the authorities through eVisitor, within 24 hours of the guest's arrival.
+eVisitor is also how the tourist tax (boravišna pristojba) is calculated. The
+requirement itself is ordinary; most countries in the region track overnight
+stays the same way.
+
+Per guest, eVisitor wants: given name, family name, optionally a middle name,
+sex as printed on the travel document, date of birth, citizenship, country and
+city of birth, country and city of residence, travel document type and number,
+arrival date and time, departure date and time, a tourist tax category, and an
+arrival code from the Ministry of the Interior (MUP).
+
+## Why the tool exists
+
+The reasoning behind eVisitor is sound. The platform built on top of it is the
+problem:
+
+- The interface is half English and half Croatian, switching between the two
+  inside a single screen and sometimes inside a single form. Neither a foreign
+  owner nor a Croatian one gets a coherent interface, and the inconsistency
+  means people learn it by position rather than by reading it.
+- The session times out while you are squinting at a passport.
+- It asks for the same property details for every guest, every time, despite
+  already knowing them.
+- There is no sensible way to hand the typing to the guest, who is the one
+  person who can read their own document accurately.
+
+The result is that passport details reach a host as a blurry photo in a
+messaging app, or a name spelled three different ways across an email thread,
+and then get retyped field by field. Every hop is a chance to introduce a wrong
+passport number, which surfaces much later.
+
+## How it works
+
+### Guest mode
+
+The guest opens the page, picks "I'm a guest", and fills in their own details
+from their own document. They save a small XML file to their device and send it
+to their host however they already talk to them. Nothing is uploaded by the
+page.
+
+### Host mode
+
+The host saves property defaults once: facility code, travel agency OIB if
+relevant, default MUP arrival code, and default check-in and check-out times.
+These persist in that browser only.
+
+For each stay the host either imports the file the guest sent or adds the guest
+by hand, then fills the parts a guest cannot know: the tourist tax category and
+the arrival code. The host saves one file containing every guest and uploads it
+to eVisitor under **Turisti → Prijava putem datoteke**.
+
+## The file it produces
+
+A UTF-8 XML document with a `TouristCheckIns` root and one `TouristCheckIn`
+element per guest. Element order follows eVisitor's schema, because the import
+reads a positional contract. Dates are serialised in the compact `YYYYMMDD`
+form, times as `HH:MM`, countries as ISO 3166-1 alpha-3 codes, and sex as `M`
+or `F`. Empty optional fields are omitted rather than emitted blank.
+
+Values are XML-escaped. Dates are validated against the real calendar, so a
+date like 31 February is refused at the point of typing rather than silently
+serialised for eVisitor to reject.
+
+## Privacy
+
+The page is static and makes no network requests at all: no server, no account,
+no database, no analytics, no third-party scripts, no fonts or styles loaded
+from anywhere else. Guest details live in `sessionStorage` and are gone when
+the tab closes. A host's property defaults live in `localStorage` and can be
+cleared from the page.
+
+Sending the file to a host does travel over the internet, by email or a
+messaging app or whatever the two people already use, exactly as a photo of the
+passport would have. The difference is that no service in the middle keeps a
+copy, no account is created, and nothing is logged. Compared with a passport
+photo sitting in a chat thread indefinitely, that is the improvement on offer,
+and it is the honest size of the claim.
+
+## Limitations and caveats
+
+- It never communicates with eVisitor. It produces a file; a human logs in and
+  uploads it. Nothing is submitted on anyone's behalf.
+- It is unofficial. Not affiliated with eVisitor, the Croatian National Tourist
+  Board, the Ministry of the Interior, or any government body.
+- The published Web-API wiki names every field but does not ship a sample
+  document, and some lookup tables (tourist tax categories, MUP arrival codes)
+  are not published at all, so a few values are best-effort. Check the first
+  file you upload, and report anything eVisitor rejects.
+- It does not replace a host's own record-keeping.
+
+## Technical notes
+
+Static single page. TypeScript compiled with Bun, Tailwind CSS v4, no runtime
+framework. Fonts and styles are self-hosted. Colours are Catppuccin, Latte in
+light mode and Mocha in dark. Deployed to GitHub Pages.
+
+Licence: GNU AGPL v3 or later. The Affero clause is deliberate: anyone
+deploying a modified copy for others to use over a network has to publish that
+source, which is what lets a host verify the version they are typing into.
+
+## Links
+
+- Tool: https://checkin.villalavacroatia.com/
+- Source: https://github.com/vpetersson/evisitor-sanity
+- Issues: https://github.com/vpetersson/evisitor-sanity/issues
+- Background article: https://villalavacroatia.com/blog/evisitor-guest-registration-without-the-pain/
+- Villa LAVA: https://villalavacroatia.com/
+- eVisitor: https://www.evisitor.hr/

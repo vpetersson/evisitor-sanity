@@ -1,0 +1,38 @@
+# Check-in for Croatia
+
+> A free, open-source page that produces the `TouristCheckIns.xml` file for Croatian eVisitor registration. Guests fill in their own details once and send their host a small file; the host imports it and uploads a single file to eVisitor. Everything runs in the browser: no server, no account, no third parties.
+
+## What problem it solves
+
+Croatian law requires accommodation providers to report every overnight guest to the authorities through eVisitor, within 24 hours of arrival. The obligation is reasonable; the platform is not pleasant to use. It is half English and half Croatian, often inside the same screen, the session times out while you are reading a passport, and it asks for the same property details for every guest every time. There is no built-in way to hand the typing to the person actually holding the document.
+
+This tool does not replace eVisitor. It produces the file that eVisitor's own bulk import accepts, under **Turisti → Prijava putem datoteke**.
+
+## How it works
+
+- **Guest mode**: a guest fills in name, date of birth, citizenship, country and city of birth, country and city of residence, travel document type and number, and their stay dates. They save a small XML file and send it to their host by whatever channel they choose.
+- **Host mode**: the host saves their property defaults once (facility code, arrival code, default check-in and check-out times), imports each guest's file or adds guests by hand, sets the tax category and arrival code, then saves one file and uploads it to eVisitor.
+
+## Privacy
+
+The page is static and makes no network requests. There is no server, no account, no database, no analytics and no third-party scripts. Guest details entered on the page are cleared when the tab closes; a host's own property defaults are the only thing kept, and they stay in that browser.
+
+Sending the file to a host does cross the internet, over whatever channel the two people pick. No service in the middle keeps a copy.
+
+## Limitations
+
+- It never talks to eVisitor. It produces a file; a human still logs in and uploads it.
+- It is unofficial and not affiliated with eVisitor, the Croatian National Tourist Board, or any government body.
+- The published Web-API documentation names every field but ships no sample file, and some lookup tables (tax categories, MUP arrival codes) are not published, so a few values are best-effort.
+
+## Links
+
+- [Check-in for Croatia](https://checkin.villalavacroatia.com/): the tool itself.
+- [Source on GitHub](https://github.com/vpetersson/evisitor-sanity): AGPL-3.0-or-later, issues welcome.
+- [Why we built it](https://villalavacroatia.com/blog/evisitor-guest-registration-without-the-pain/): background for other property owners in Croatia.
+- [Villa LAVA](https://villalavacroatia.com/): the house this came out of.
+
+## Detailed documentation
+
+A full-content version of this file is at https://checkin.villalavacroatia.com/llms-full.txt
+Sitemap: https://checkin.villalavacroatia.com/sitemap.xml
