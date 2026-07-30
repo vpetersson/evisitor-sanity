@@ -56,6 +56,12 @@ export function renderForMode(state: AppState, handlers: Handlers): void {
   const sticky = document.getElementById("sticky-cta") as HTMLElement | null;
   if (!chooser || !guestFlow || !hostFlow || !toggle || !sticky) return;
 
+  // Keep the pre-paint attribute honest: it is what hides the chooser via CSS,
+  // so clearing the saved role has to clear it too or the chooser never returns.
+  const root = document.documentElement;
+  if (state.mode === null) root.removeAttribute("data-mode");
+  else root.setAttribute("data-mode", state.mode);
+
   if (state.mode === null) {
     chooser.hidden = false;
     guestFlow.hidden = true;

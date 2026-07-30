@@ -4,10 +4,62 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Check-in for Croatia: share your stay details securely</title>
-    <meta name="description" content="A saner way to share your overnight stay details in Croatia. Guests fill in their info once and send a file; hosts collect the files and register them with the authorities. No server, no account, no third parties." />
-    <meta name="theme-color" content="#f6f1e7" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#15140f" media="(prefers-color-scheme: dark)" />
+    <meta name="description" content="Croatian eVisitor registration without the retyping. Guests fill in their details once and send a file; hosts upload one file. Free and open source." />
+    <!-- Latte base and Mocha base. These were still the old cream and brown
+         palette after the restyle, so the browser chrome did not match the page. -->
+    <meta name="theme-color" content="#e6e9ef" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#181825" media="(prefers-color-scheme: dark)" />
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <link rel="canonical" href="https://checkin.villalavacroatia.com/" />
+
+    <!-- This tool is shared by sending someone the link, so the preview card is
+         part of the product rather than decoration. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://checkin.villalavacroatia.com/" />
+    <meta property="og:site_name" content="Check-in for Croatia" />
+    <meta property="og:locale" content="en_GB" />
+    <meta property="og:title" content="Check-in for Croatia: share your stay details securely" />
+    <meta property="og:description" content="Fill in your check-in details once and send your host a file. Croatian eVisitor registration without retyping a passport into a form. No server, no account, no third parties." />
+    <meta property="og:image" content="https://checkin.villalavacroatia.com/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Check-in for Croatia: eVisitor registration without the retyping" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Check-in for Croatia: share your stay details securely" />
+    <meta name="twitter:description" content="Fill in your check-in details once and send your host a file. Croatian eVisitor registration without retyping a passport into a form." />
+    <meta name="twitter:image" content="https://checkin.villalavacroatia.com/og.png" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Check-in for Croatia",
+        "url": "https://checkin.villalavacroatia.com/",
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "Any browser",
+        "browserRequirements": "Requires JavaScript",
+        "description": "Generates the TouristCheckIns.xml file for Croatian eVisitor registration. Guests fill in their own details and send a file; hosts import it and upload one file to eVisitor. Runs entirely in the browser.",
+        "inLanguage": "en",
+        "isAccessibleForFree": true,
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
+        "license": "https://www.gnu.org/licenses/agpl-3.0.html",
+        "author": { "@type": "Organization", "name": "Villa LAVA", "url": "https://villalavacroatia.com/" },
+        "countriesSupported": "HR"
+      }
+    </script>
+
+    <script>
+      // Stamp the saved role on <html> before first paint. The chooser is
+      // visible in the markup so a crawler without JS still sees the heading and
+      // the pitch; this keeps that from costing a returning user a flash of the
+      // wrong screen. renderForMode keeps the attribute in sync afterwards, so
+      // clearing the saved role brings the chooser back.
+      try {
+        var m = localStorage.getItem("evx.mode.v1");
+        if (m === "guest" || m === "host") document.documentElement.setAttribute("data-mode", m);
+      } catch (e) { /* private mode: leave the chooser visible */ }
+    </script>
+
     <link rel="stylesheet" href="./assets/styles.css" />
   </head>
   <body>
@@ -40,7 +92,12 @@
     <main id="top" class="container main-stack">
 
       <!-- ─────────── Mode chooser (only on first visit) ─────────── -->
-      <section id="mode-chooser" class="mode-chooser" hidden>
+      <!-- Not hidden: every flow section used to ship hidden and JS revealed one
+           on boot, so a crawler that does not run scripts saw a page whose h1
+           and whole pitch were invisible. The chooser is the correct default
+           for a first visit anyway; the inline script in <head> hides it before
+           paint when a role is already saved, so there is no flash. -->
+      <section id="mode-chooser" class="mode-chooser">
         <h1 class="hero-title">A saner way to share<br /><span class="hero-italic">your check-in details.</span></h1>
         <p class="hero-lede">
           Croatian law requires every overnight stay to be reported to the authorities. This page lets you and

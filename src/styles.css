@@ -117,6 +117,12 @@
   --ease-out-soft: cubic-bezier(0.22, 0.61, 0.36, 1);
 }
 
+/* Set by the inline script in <head> from the saved role, so a returning user
+   does not see the chooser flash before JS decides. The chooser itself is
+   visible in the markup so a crawler without JS still gets the h1 and pitch. */
+html[data-mode="guest"] #mode-chooser,
+html[data-mode="host"] #mode-chooser { display: none; }
+
 /* ── Base ─────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; }
 html { font-size: 16px; -webkit-text-size-adjust: 100%; }
