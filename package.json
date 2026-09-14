@@ -20,9 +20,9 @@
   },
   "devDependencies": {
     "@tailwindcss/cli": "^4.3.3",
-    "@types/bun": "^1.1.13",
-    "happy-dom": "^20.11.1",
-    "playwright": "^1.62.1",
+    "@types/bun": "^1.4.2",
+    "happy-dom": "^20.14.3",
+    "playwright": "^1.63.0",
     "tailwindcss": "^4.3.3",
     "typescript": "^7.0.2"
   },
