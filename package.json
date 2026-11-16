@@ -19,11 +19,11 @@
     "test:all": "bun run test && bun run test:e2e"
   },
   "devDependencies": {
-    "@tailwindcss/cli": "^4.3.4",
+    "@tailwindcss/cli": "^4.3.5",
     "@types/bun": "^1.4.4",
     "happy-dom": "^21.0.4",
     "playwright": "^1.65.0",
-    "tailwindcss": "^4.3.4",
+    "tailwindcss": "^4.3.5",
     "typescript": "^7.0.2"
   },
   "dependencies": {
